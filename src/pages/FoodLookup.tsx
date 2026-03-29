@@ -1,9 +1,11 @@
+"use client";
+
 import React, { useState } from 'react';
 import GlassCard from '@/components/GlassCard';
 import { analyzeNutrition, searchRecipes } from '@/lib/edamam';
 import { calculateHealthyScore, analyzeHealthConditions } from '@/lib/scoring';
 import { getStoredData, STORAGE_KEYS, setStoredData, updatePoints } from '@/lib/storage';
-import { Search, Info, AlertTriangle, CheckCircle2, Plus, Loader2 } from 'lucide-react';
+import { Search, Info, AlertTriangle, CheckCircle2, Plus, Loader2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { showSuccess, showError } from '@/utils/toast';
 import { cn } from '@/lib/utils';
@@ -15,26 +17,37 @@ const FoodLookup = () => {
   const [recipes, setRecipes] = useState<any[]>([]);
   const [profile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, { healthConditions: [] }));
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query) return;
+  const examples = ["1 large apple", "100g grilled salmon", "1 cup of coffee", "1 avocado"];
+
+  const handleSearch = async (e?: React.FormEvent, testQuery?: string) => {
+    if (e) e.preventDefault();
+    const searchQuery = testQuery || query;
+    if (!searchQuery) return;
     
+    setQuery(searchQuery);
     setLoading(true);
-    const data = await analyzeNutrition(query);
-    if (data && data.calories > 0) {
-      const score = calculateHealthyScore(data);
-      const alerts = analyzeHealthConditions(data, profile.healthConditions || []);
-      setResult({ ...data, score, alerts });
-      
-      // Also search for related recipes
-      const recipeData = await searchRecipes(query);
-      if (recipeData) setRecipes(recipeData.hits.slice(0, 4));
-      
-      updatePoints(10);
-    } else {
-      showError("Could not analyze this food. Try being more specific (e.g., '1 large apple')");
+    setResult(null);
+    
+    try {
+      const data = await analyzeNutrition(searchQuery);
+      if (data && data.calories > 0) {
+        const score = calculateHealthyScore(data);
+        const alerts = analyzeHealthConditions(data, profile.healthConditions || []);
+        setResult({ ...data, score, alerts });
+        
+        // Also search for related recipes
+        const recipeData = await searchRecipes(searchQuery);
+        if (recipeData) setRecipes(recipeData.hits.slice(0, 4));
+        
+        updatePoints(10);
+      } else {
+        showError("Could not analyze this food. Try being more specific (e.g., '1 large apple')");
+      }
+    } catch (err) {
+      showError("An error occurred during analysis.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const addToLog = (food: any) => {
@@ -54,28 +67,45 @@ const FoodLookup = () => {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
       <header>
         <h2 className="text-3xl font-bold text-white mb-2">Nutrition Intelligence</h2>
         <p className="text-slate-400">Analyze any food or ingredient with AI-powered precision.</p>
       </header>
 
-      <form onSubmit={handleSearch} className="relative">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="e.g., 100g grilled chicken breast or 1 avocado"
-          className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 pl-14 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
-        />
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
-        <button 
-          disabled={loading}
-          className="absolute right-3 top-1/2 -translate-y-1/2 bg-cyan-500 hover:bg-cyan-400 text-white px-6 py-2 rounded-xl font-medium transition-colors disabled:opacity-50"
-        >
-          {loading ? <Loader2 className="animate-spin" size={20} /> : 'Analyze'}
-        </button>
-      </form>
+      <div className="space-y-4">
+        <form onSubmit={(e) => handleSearch(e)} className="relative">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="e.g., 100g grilled chicken breast or 1 avocado"
+            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 pl-14 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+          />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+          <button 
+            disabled={loading}
+            className="absolute right-3 top-1/2 -translate-y-1/2 bg-cyan-500 hover:bg-cyan-400 text-white px-6 py-2 rounded-xl font-medium transition-colors disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="animate-spin" size={20} /> : 'Analyze'}
+          </button>
+        </form>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-xs text-slate-500 uppercase font-bold flex items-center gap-1">
+            <Sparkles size={12} /> Quick Test:
+          </span>
+          {examples.map((ex) => (
+            <button
+              key={ex}
+              onClick={() => handleSearch(undefined, ex)}
+              className="text-xs bg-white/5 hover:bg-white/10 text-slate-300 px-3 py-1.5 rounded-full border border-white/10 transition-colors"
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <AnimatePresence mode="wait">
         {result && (
@@ -148,7 +178,7 @@ const FoodLookup = () => {
 
             <div className="space-y-6">
               <h4 className="text-white font-bold">Related Recipes</h4>
-              {recipes.map((item, i) => (
+              {recipes.length > 0 ? recipes.map((item, i) => (
                 <motion.div 
                   key={i}
                   initial={{ opacity: 0, x: 20 }}
@@ -156,15 +186,19 @@ const FoodLookup = () => {
                   transition={{ delay: i * 0.1 }}
                   className="group cursor-pointer"
                 >
-                  <GlassCard className="p-3 flex gap-4 hover:bg-white/15 transition-colors">
-                    <img src={item.recipe.image} alt={item.recipe.label} className="w-16 h-16 rounded-xl object-cover" />
-                    <div className="flex-1 min-w-0">
-                      <h5 className="text-white font-medium truncate">{item.recipe.label}</h5>
-                      <p className="text-xs text-slate-500">{Math.round(item.recipe.calories / item.recipe.yield)} kcal/serving</p>
-                    </div>
-                  </GlassCard>
+                  <a href={item.recipe.url} target="_blank" rel="noreferrer">
+                    <GlassCard className="p-3 flex gap-4 hover:bg-white/15 transition-colors">
+                      <img src={item.recipe.image} alt={item.recipe.label} className="w-16 h-16 rounded-xl object-cover" />
+                      <div className="flex-1 min-w-0">
+                        <h5 className="text-white font-medium truncate">{item.recipe.label}</h5>
+                        <p className="text-xs text-slate-500">{Math.round(item.recipe.calories / item.recipe.yield)} kcal/serving</p>
+                      </div>
+                    </GlassCard>
+                  </a>
                 </motion.div>
-              ))}
+              )) : (
+                <p className="text-slate-500 text-sm italic">No related recipes found.</p>
+              )}
             </div>
           </motion.div>
         )}
