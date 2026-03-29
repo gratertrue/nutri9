@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import GlassCard from '@/components/GlassCard';
 import { getStoredData, setStoredData, STORAGE_KEYS } from '@/lib/storage';
-import { User, Activity, Heart, Scale, Mail, History } from 'lucide-react';
+import { User, Activity, Heart, Scale } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Profile = () => {
   const [profile, setProfile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, {
     name: '',
-    email: '',
     age: 25,
     weight: 70,
     height: 175,
@@ -19,12 +17,6 @@ const Profile = () => {
     healthConditions: [],
     dietaryRestrictions: []
   }));
-
-  const [weightHistory, setWeightHistory] = useState(() => getStoredData(STORAGE_KEYS.WEIGHT_HISTORY, [
-    { date: '2024-01-01', weight: 72 },
-    { date: '2024-02-01', weight: 71 },
-    { date: '2024-03-01', weight: 70 },
-  ]));
 
   const [bmi, setBmi] = useState<number | null>(null);
   const [bmiCategory, setBmiCategory] = useState<string>('');
@@ -42,19 +34,12 @@ const Profile = () => {
     }
   }, [profile.weight, profile.height]);
 
+  const conditions = ['Diabetes', 'Heart Condition', 'Hypertension', 'Stomach Sensitivity'];
+  const diets = ['Vegetarian', 'Vegan', 'Paleo', 'Gluten-Free', 'Keto'];
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setStoredData(STORAGE_KEYS.USER_PROFILE, profile);
-    
-    // Update weight history if weight changed
-    const today = new Date().toISOString().split('T')[0];
-    const lastEntry = weightHistory[weightHistory.length - 1];
-    if (!lastEntry || lastEntry.weight !== profile.weight) {
-      const newHistory = [...weightHistory, { date: today, weight: profile.weight }];
-      setWeightHistory(newHistory);
-      setStoredData(STORAGE_KEYS.WEIGHT_HISTORY, newHistory);
-    }
-    
     showSuccess("Profile updated successfully!");
   };
 
@@ -66,7 +51,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 md:space-y-8">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 md:space-y-8">
       <header>
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">Biometric Profile</h2>
         <p className="text-slate-400 text-sm md:text-base">Personalize your nutrition intelligence engine.</p>
@@ -79,28 +64,14 @@ const Profile = () => {
             Basic Information
           </h3>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] text-slate-500 uppercase mb-1 block">Full Name</label>
-                <input 
-                  type="text" 
-                  value={profile.name}
-                  onChange={e => setProfile({...profile, name: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-slate-500 uppercase mb-1 block">Email (for API)</label>
-                <div className="relative">
-                  <input 
-                    type="email" 
-                    value={profile.email}
-                    onChange={e => setProfile({...profile, email: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 pl-10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                  />
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                </div>
-              </div>
+            <div>
+              <label className="text-[10px] text-slate-500 uppercase mb-1 block">Full Name</label>
+              <input 
+                type="text" 
+                value={profile.name}
+                onChange={e => setProfile({...profile, name: e.target.value})}
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
+              />
             </div>
             <div className="grid grid-cols-2 gap-3 md:gap-4">
               <div>
@@ -140,26 +111,6 @@ const Profile = () => {
           </div>
         </GlassCard>
       </div>
-
-      <GlassCard>
-        <h3 className="text-white font-bold mb-6 flex items-center gap-2">
-          <History size={18} className="text-cyan-400" />
-          Weight Progress
-        </h3>
-        <div className="h-48 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={weightHistory}>
-              <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickFormatter={(val) => val.split('-')[2]} />
-              <YAxis stroke="#64748b" fontSize={10} domain={['dataMin - 5', 'dataMax + 5']} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '8px' }}
-                itemStyle={{ color: '#22d3ee' }}
-              />
-              <Line type="monotone" dataKey="weight" stroke="#22d3ee" strokeWidth={3} dot={{ fill: '#22d3ee' }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </GlassCard>
 
       <form onSubmit={handleSave} className="space-y-4 md:space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
@@ -210,7 +161,7 @@ const Profile = () => {
               <div>
                 <label className="text-[10px] text-slate-500 uppercase mb-3 block">Health Conditions</label>
                 <div className="flex flex-wrap gap-2">
-                  {['Diabetes', 'Heart Condition', 'Hypertension', 'Stomach Sensitivity'].map(c => (
+                  {conditions.map(c => (
                     <button
                       key={c}
                       type="button"
@@ -230,7 +181,7 @@ const Profile = () => {
               <div>
                 <label className="text-[10px] text-slate-500 uppercase mb-3 block">Dietary Restrictions</label>
                 <div className="flex flex-wrap gap-2">
-                  {['Vegetarian', 'Vegan', 'Paleo', 'Gluten-Free', 'Keto'].map(d => (
+                  {diets.map(d => (
                     <button
                       key={d}
                       type="button"

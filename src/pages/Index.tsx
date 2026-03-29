@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import GlassCard from '@/components/GlassCard';
-import { getStoredData, STORAGE_KEYS, setStoredData, updatePoints } from '@/lib/storage';
+import { getStoredData, STORAGE_KEYS } from '@/lib/storage';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Flame, Target, TrendingUp, Award, Scale, ChevronRight, Droplets, Plus, Minus } from 'lucide-react';
+import { Flame, Target, TrendingUp, Award, Scale, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { showSuccess } from '@/utils/toast';
 
 const Index = () => {
   const [profile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, { 
@@ -16,9 +15,8 @@ const Index = () => {
     weight: 0,
     height: 0
   }));
-  const [points, setPoints] = useState(() => getStoredData(STORAGE_KEYS.POINTS, 0));
+  const [points] = useState(() => getStoredData(STORAGE_KEYS.POINTS, 0));
   const [log] = useState(() => getStoredData(STORAGE_KEYS.FOOD_LOG, []));
-  const [water, setWater] = useState(() => getStoredData(STORAGE_KEYS.WATER_INTAKE, 0));
 
   const today = new Date().toISOString().split('T')[0];
   const todayLog = log.filter((item: any) => item.date === today);
@@ -35,17 +33,6 @@ const Index = () => {
   };
 
   const bmi = calculateBMI();
-
-  const updateWater = (amount: number) => {
-    const newWater = Math.max(0, water + amount);
-    setWater(newWater);
-    setStoredData(STORAGE_KEYS.WATER_INTAKE, newWater);
-    if (amount > 0) {
-      const newPoints = updatePoints(5);
-      setPoints(newPoints);
-      showSuccess("Hydration tracked! +5 pts");
-    }
-  };
 
   return (
     <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto">
@@ -88,31 +75,6 @@ const Index = () => {
           <p className="mt-4 text-xs md:text-sm text-cyan-400 font-medium">{remaining} kcal remaining</p>
         </GlassCard>
 
-        <GlassCard className="relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Droplets size={60} className="text-blue-500 md:w-20 md:h-20" />
-          </div>
-          <h3 className="text-slate-400 text-xs md:text-sm font-medium mb-4">Water Intake</h3>
-          <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-3xl md:text-4xl font-bold text-white">{water}</span>
-            <span className="text-slate-500 text-sm">/ 8 glasses</span>
-          </div>
-          <div className="flex gap-2">
-            <button 
-              onClick={() => updateWater(1)}
-              className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 py-2 rounded-xl transition-colors flex items-center justify-center gap-2"
-            >
-              <Plus size={16} /> Add Glass
-            </button>
-            <button 
-              onClick={() => updateWater(-1)}
-              className="px-4 bg-white/5 hover:bg-white/10 text-slate-400 py-2 rounded-xl transition-colors"
-            >
-              <Minus size={16} />
-            </button>
-          </div>
-        </GlassCard>
-
         <GlassCard className="flex flex-col justify-center relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Scale size={60} className="text-cyan-500 md:w-20 md:h-20" />
@@ -125,6 +87,18 @@ const Index = () => {
           <div className="mt-4">
             <Link to="/profile" className="text-xs text-cyan-400 hover:underline flex items-center gap-1">
               Update metrics <ChevronRight size={12} />
+            </Link>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="flex flex-col justify-center">
+          <h3 className="text-slate-400 text-xs md:text-sm font-medium mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <Link to="/lookup" className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-bold text-center transition-colors border border-white/5">
+              Log Food
+            </Link>
+            <Link to="/planner" className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-bold text-center transition-colors border border-white/5">
+              Plan Meal
             </Link>
           </div>
         </GlassCard>
