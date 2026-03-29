@@ -6,7 +6,7 @@ import { getWeeklyMealPlan } from '@/lib/edamam';
 import { getStoredData, STORAGE_KEYS, setStoredData } from '@/lib/storage';
 import { 
   Calendar, ShoppingCart, Mic, Play, ChevronRight, 
-  RefreshCw, Trash2, Plus, Scale, ChefHat, Database, Cpu
+  RefreshCw, Trash2, Plus, Scale, ChefHat
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { showSuccess, showError } from '@/utils/toast';
@@ -23,11 +23,15 @@ const MealPlanner = () => {
   const generatePlan = async () => {
     setLoading(true);
     try {
-      const data = await getWeeklyMealPlan('user123', {});
+      const data = await getWeeklyMealPlan('user123', {
+        plan: {
+          accept: { all: [{ health: profile.healthConditions || [] }] }
+        }
+      });
       if (data) {
         setPlan(data);
         setStoredData(STORAGE_KEYS.MEAL_PLANNER_LOG, data);
-        showSuccess(data.source === 'local_intelligence' ? "Deep Intelligence Plan Generated!" : "Cloud Plan Generated!");
+        showSuccess("Weekly plan generated!");
       }
     } catch (err) {
       showError("Failed to generate plan.");
@@ -45,25 +49,19 @@ const MealPlanner = () => {
     }
   };
 
+  // Extract all ingredients for the shopping list
   const shoppingList = plan?.selection?.reduce((acc: string[], day: any) => {
     day.meals.forEach((meal: any) => {
       if (meal.ingredients) acc.push(...meal.ingredients);
     });
-    return Array.from(new Set(acc));
+    return Array.from(new Set(acc)); // Unique ingredients
   }, []) || [];
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-3xl font-bold text-white">AI Meal Planner</h2>
-            {plan?.source === 'local_intelligence' && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-purple-500/20 text-purple-400 text-[10px] font-bold rounded-full border border-purple-500/30">
-                <Cpu size={10} /> Deep Intelligence Active
-              </span>
-            )}
-          </div>
+          <h2 className="text-3xl font-bold text-white mb-2">AI Meal Planner</h2>
           <p className="text-slate-400">Personalized weekly nutrition strategy.</p>
         </div>
         <div className="flex gap-3">
