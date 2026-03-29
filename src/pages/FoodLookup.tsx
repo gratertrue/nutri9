@@ -22,7 +22,7 @@ const FoodLookup = () => {
   const handleSearch = async (e?: React.FormEvent, testQuery?: string) => {
     if (e) e.preventDefault();
     const searchQuery = testQuery || query;
-    if (!searchQuery) return;
+    if (!searchQuery.trim()) return;
     
     setQuery(searchQuery);
     setLoading(true);
@@ -30,7 +30,9 @@ const FoodLookup = () => {
     
     try {
       const data = await analyzeNutrition(searchQuery);
-      if (data && data.calories > 0) {
+      
+      // Check if data exists and has weight (meaning it was successfully parsed)
+      if (data && data.totalWeight > 0) {
         const score = calculateHealthyScore(data);
         const alerts = analyzeHealthConditions(data, profile.healthConditions || []);
         setResult({ ...data, score, alerts });
@@ -56,7 +58,7 @@ const FoodLookup = () => {
       id: Date.now(),
       date: new Date().toISOString().split('T')[0],
       name: query,
-      calories: food.calories,
+      calories: food.calories || 0,
       protein: food.totalNutrients?.PROCNT?.quantity || 0,
       carbs: food.totalNutrients?.CHOCDF?.quantity || 0,
       fat: food.totalNutrients?.FAT?.quantity || 0,
