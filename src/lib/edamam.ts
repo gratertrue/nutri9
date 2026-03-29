@@ -6,6 +6,9 @@ const FOOD_APP_KEY = "4ef9911c1a046060203091660977ee0d";
 const RECIPE_APP_ID = "23cc0b56"; 
 const RECIPE_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 
+// Using a CORS proxy to bypass browser restrictions for the v1 API
+const CORS_PROXY = "https://corsproxy.io/?";
+
 export const analyzeNutrition = async (ingr: string) => {
   try {
     const url = new URL("https://api.edamam.com/api/food-database/v2/parser");
@@ -13,7 +16,7 @@ export const analyzeNutrition = async (ingr: string) => {
     url.searchParams.append("app_key", FOOD_APP_KEY);
     url.searchParams.append("ingr", ingr);
 
-    const response = await fetch(url.toString());
+    const response = await fetch(`${CORS_PROXY}${encodeURIComponent(url.toString())}`);
     if (!response.ok) return getFallbackData(ingr);
 
     const data = await response.json();
@@ -75,7 +78,6 @@ export const searchRecipes = async (params: {
   diet?: string;
 }) => {
   try {
-    // Reverting to v1 Search API which is more compatible with these keys
     const url = new URL("https://api.edamam.com/search");
     url.searchParams.append("q", params.query);
     url.searchParams.append("app_id", RECIPE_APP_ID);
@@ -97,7 +99,8 @@ export const searchRecipes = async (params: {
       url.searchParams.append("diet", params.diet);
     }
 
-    const response = await fetch(url.toString());
+    // Using the CORS proxy to avoid ERR_FAILED/CORS issues
+    const response = await fetch(`${CORS_PROXY}${encodeURIComponent(url.toString())}`);
     
     if (!response.ok) {
       console.error("Edamam API Error:", response.status);
@@ -128,7 +131,6 @@ export const getRecommendations = async (params: {
   const queries = baseQueries[mealTypeKey] || baseQueries.lunch;
   const randomQuery = queries[Math.floor(Math.random() * queries.length)];
   
-  // Combine meal type and random query for better results in v1
   const finalQuery = `${mealTypeKey} ${randomQuery} ${params.healthLabels.length > 0 ? params.healthLabels[0] : ''}`.trim();
 
   return searchRecipes({
