@@ -6,8 +6,7 @@ const NUTRITION_APP_KEY = "a0b84fa17a95362c2fb8084d5161a5e4";
 const MEAL_PLANNER_APP_ID = "23cc0b56"; 
 const MEAL_PLANNER_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 
-// Using corsproxy.io which handles POST requests and preflight better than codetabs
-const PROXY_URL = "https://corsproxy.io/?";
+const PROXY_URL = "https://api.codetabs.com/v1/proxy?quest=";
 
 export const analyzeNutrition = async (ingr: string) => {
   try {
@@ -27,26 +26,19 @@ export const analyzeNutrition = async (ingr: string) => {
 
 export const getWeeklyMealPlan = async (userId: string, params: any) => {
   try {
-    // The Meal Planner API requires a POST request with a JSON body
-    const baseUrl = `https://api.edamam.com/api/meal-planner/v1/${userId}/week?app_id=${MEAL_PLANNER_APP_ID}&app_key=${MEAL_PLANNER_APP_KEY}`;
+    const url = new URL(`https://api.edamam.com/api/meal-planner/v1/${userId}/week`);
+    url.searchParams.append("app_id", MEAL_PLANNER_APP_ID);
+    url.searchParams.append("app_key", MEAL_PLANNER_APP_KEY);
     
-    const response = await fetch(`${PROXY_URL}${encodeURIComponent(baseUrl)}`, {
+    const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params)
     });
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Meal planner API error:", errorText);
-      return null;
-    }
+    if (!response.ok) return null;
     return await response.json();
   } catch (error) {
-    console.error("Meal planner request failed", error);
     return null;
   }
 };
@@ -59,18 +51,13 @@ export const searchRecipes = async (query: string, health: string[] = [], diet?:
     url.searchParams.append("app_id", MEAL_PLANNER_APP_ID);
     url.searchParams.append("app_key", MEAL_PLANNER_APP_KEY);
     
-    health.forEach(h => {
-      const formatted = h.toLowerCase().replace(/\s+/g, '-');
-      url.searchParams.append("health", formatted);
-    });
-    
+    health.forEach(h => url.searchParams.append("health", h.toLowerCase().replace(/\s+/g, '-')));
     if (diet) url.searchParams.append("diet", diet);
 
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
     if (!response.ok) return null;
     return await response.json();
   } catch (error) {
-    console.error("Recipe search failed", error);
     return null;
   }
 };
