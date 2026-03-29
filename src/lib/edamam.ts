@@ -6,8 +6,8 @@ const FOOD_APP_KEY = "4ef9911c1a046060203091660977ee0d";
 const RECIPE_APP_ID = "23cc0b56"; 
 const RECIPE_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 
-// Using AllOrigins as a more reliable CORS proxy for v1 API calls
-const PROXY_URL = "https://api.allorigins.win/raw?url=";
+// Using AllOrigins JSON wrapper for maximum CORS compatibility
+const PROXY_URL = "https://api.allorigins.win/get?url=";
 
 export const analyzeNutrition = async (ingr: string) => {
   try {
@@ -16,11 +16,12 @@ export const analyzeNutrition = async (ingr: string) => {
     url.searchParams.append("app_key", FOOD_APP_KEY);
     url.searchParams.append("ingr", ingr);
 
-    // Food Database v2 usually supports CORS, but we'll proxy it to be safe
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
     if (!response.ok) return getFallbackData(ingr);
 
-    const data = await response.json();
+    const jsonWrapper = await response.json();
+    const data = JSON.parse(jsonWrapper.contents);
+
     if (!data || !data.hints || data.hints.length === 0) return getFallbackData(ingr);
 
     const food = data.hints[0].food;
@@ -100,15 +101,17 @@ export const searchRecipes = async (params: {
       url.searchParams.append("diet", params.diet);
     }
 
-    // Mandatory proxy for v1 Search API to bypass CORS
+    // Using the JSON wrapper proxy to bypass CORS reliably
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
     
     if (!response.ok) {
-      console.error("Edamam API Error:", response.status);
+      console.error("Proxy Error:", response.status);
       return null;
     }
     
-    return await response.json();
+    const jsonWrapper = await response.json();
+    // The actual API response is inside the 'contents' property as a string
+    return JSON.parse(jsonWrapper.contents);
   } catch (error) {
     console.error("Fetch Error:", error);
     return null;
