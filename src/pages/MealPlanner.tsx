@@ -2,321 +2,159 @@
 
 import React, { useState, useEffect } from 'react';
 import GlassCard from '@/components/GlassCard';
-import { getStoredData, STORAGE_KEYS, setStoredData, updatePoints } from '@/lib/storage';
-import { getRecommendations } from '@/lib/edamam';
+import { getWeeklyMealPlan } from '@/lib/edamam';
+import { getStoredData, STORAGE_KEYS, setStoredData } from '@/lib/storage';
 import { 
-  Sparkles, 
-  RefreshCw, 
-  ExternalLink, 
-  Clock, 
-  Flame, 
-  Plus, 
-  ChefHat,
-  UtensilsCrossed,
-  Coffee,
-  Moon,
-  Sun,
-  Filter,
-  Zap,
-  Leaf,
-  Target
+  Calendar, ShoppingCart, Mic, Play, ChevronRight, 
+  RefreshCw, Trash2, Plus, Scale, ChefHat
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { showSuccess, showError } from '@/utils/toast';
 import { cn } from '@/lib/utils';
 
-const mealTypes = [
-  { id: 'breakfast', label: 'Breakfast', icon: Coffee, color: 'text-yellow-400' },
-  { id: 'lunch', label: 'Lunch', icon: Sun, color: 'text-orange-400' },
-  { id: 'dinner', label: 'Dinner', icon: Moon, color: 'text-indigo-400' },
-  { id: 'snack', label: 'Snacks', icon: UtensilsCrossed, color: 'text-pink-400' },
-];
-
-const smartFilters = [
-  { id: 'high-protein', label: 'High Protein', icon: Zap, color: 'text-cyan-400', diet: 'high-protein' },
-  { id: 'low-carb', label: 'Low Carb', icon: Target, color: 'text-purple-400', diet: 'low-carb' },
-  { id: 'low-fat', label: 'Low Fat', icon: Leaf, color: 'text-green-400', diet: 'low-fat' },
-];
-
 const MealPlanner = () => {
-  const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeMealType, setActiveMealType] = useState('lunch');
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [useCalorieRange, setUseCalorieRange] = useState(true);
-  
-  const [profile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, { 
-    dietaryRestrictions: [],
-    calorieGoal: 2000 
-  }));
+  const [plan, setPlan] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'calendar' | 'shopping'>('calendar');
+  const [cookingMode, setCookingMode] = useState(false);
+  const [profile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, { calorieGoal: 2000 }));
 
-  const fetchMeals = async () => {
+  const generatePlan = async () => {
     setLoading(true);
     try {
-      let calorieRange = "";
-      if (useCalorieRange) {
-        const perMeal = activeMealType === 'snack' 
-          ? profile.calorieGoal * 0.15 
-          : profile.calorieGoal * 0.35;
-        calorieRange = `${Math.round(perMeal * 0.7)}-${Math.round(perMeal * 1.3)}`;
-      }
-
-      const selectedFilter = smartFilters.find(f => f.id === activeFilter);
-
-      const data = await getRecommendations({
-        healthLabels: profile.dietaryRestrictions || [],
-        mealType: activeMealType,
-        calories: calorieRange || undefined,
-        diet: selectedFilter?.diet
+      const data = await getWeeklyMealPlan('user123', {
+        size: 7,
+        plan: {
+          accept: { all: [{ health: profile.healthConditions || [] }] },
+          fit: { ENERC_KCAL: { min: profile.calorieGoal * 0.8, max: profile.calorieGoal * 1.2 } }
+        }
       });
-
-      if (data && data.hits) {
-        setRecommendations(data.hits);
-      } else {
-        setRecommendations([]);
-        showError("No recipes found. Try broadening your search.");
+      if (data) {
+        setPlan(data);
+        setStoredData(STORAGE_KEYS.MEAL_PLANNER_LOG, data);
+        showSuccess("Weekly plan generated!");
       }
-    } catch (error) {
-      console.error("Failed to fetch meals", error);
-      showError("Failed to connect to the recipe engine.");
+    } catch (err) {
+      showError("Failed to generate plan.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchMeals();
-  }, [activeMealType, activeFilter, useCalorieRange]);
-
-  const addToLog = (recipe: any) => {
-    const log = getStoredData(STORAGE_KEYS.FOOD_LOG, []);
-    const servings = recipe.yield || 1;
-    const newEntry = {
-      id: Date.now(),
-      date: new Date().toISOString().split('T')[0],
-      name: recipe.label,
-      calories: Math.round(recipe.calories / servings),
-      protein: (recipe.totalNutrients?.PROCNT?.quantity || 0) / servings,
-      carbs: (recipe.totalNutrients?.CHOCDF?.quantity || 0) / servings,
-      fat: (recipe.totalNutrients?.FAT?.quantity || 0) / servings,
-    };
-    
-    setStoredData(STORAGE_KEYS.FOOD_LOG, [...log, newEntry]);
-    updatePoints(30);
-    showSuccess(`Added one serving of ${recipe.label} to log!`);
+  const startCooking = (recipe: any) => {
+    setCookingMode(true);
+    if ('speechSynthesis' in window) {
+      const msg = new SpeechSynthesisUtterance(`Starting to cook ${recipe.label}. Step 1: Prepare your ingredients.`);
+      window.speechSynthesis.speak(msg);
+    }
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2 flex items-center gap-3">
-            <Sparkles className="text-yellow-400" />
-            AI Meal Planner
-          </h2>
-          <p className="text-slate-400 text-sm md:text-base">Personalized recipes based on your dietary profile and goals.</p>
+          <h2 className="text-3xl font-bold text-white mb-2">AI Meal Planner</h2>
+          <p className="text-slate-400">Personalized weekly nutrition strategy.</p>
         </div>
-        <button 
-          onClick={fetchMeals}
-          disabled={loading}
-          className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl border border-white/10 transition-all disabled:opacity-50 text-sm"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          Refresh Plan
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setActiveTab('calendar')}
+            className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-all", activeTab === 'calendar' ? "bg-cyan-500 text-white" : "bg-white/5 text-slate-400")}
+          >
+            Calendar
+          </button>
+          <button 
+            onClick={() => setActiveTab('shopping')}
+            className={cn("px-4 py-2 rounded-xl text-sm font-bold transition-all", activeTab === 'shopping' ? "bg-purple-500 text-white" : "bg-white/5 text-slate-400")}
+          >
+            Shopping List
+          </button>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="space-y-6">
-          <GlassCard className="p-4 space-y-6">
-            <div>
-              <h3 className="text-white font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                <UtensilsCrossed size={14} className="text-cyan-400" />
-                Meal Type
+      {!plan ? (
+        <div className="text-center py-20">
+          <ChefHat size={64} className="mx-auto text-slate-700 mb-6" />
+          <h3 className="text-2xl font-bold text-white mb-4">No Active Plan</h3>
+          <button 
+            onClick={generatePlan}
+            disabled={loading}
+            className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-cyan-500/20"
+          >
+            {loading ? <RefreshCw className="animate-spin" /> : "Generate Weekly Plan"}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {activeTab === 'calendar' ? (
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
+                <GlassCard key={day} className="p-4 flex flex-col gap-4">
+                  <h4 className="text-cyan-400 font-bold text-center border-b border-white/10 pb-2">{day}</h4>
+                  <div className="space-y-3">
+                    <div className="p-2 bg-white/5 rounded-lg text-[10px] text-slate-300">
+                      <div className="font-bold text-white truncate">Oatmeal with Berries</div>
+                      <div className="mt-1">340 kcal</div>
+                    </div>
+                    <div className="p-2 bg-white/5 rounded-lg text-[10px] text-slate-300">
+                      <div className="font-bold text-white truncate">Grilled Chicken Salad</div>
+                      <div className="mt-1">520 kcal</div>
+                    </div>
+                    <button 
+                      onClick={() => startCooking({label: 'Grilled Chicken Salad'})}
+                      className="w-full py-1 bg-cyan-500/20 text-cyan-400 rounded-md text-[10px] font-bold flex items-center justify-center gap-1"
+                    >
+                      <Play size={10} /> Cook
+                    </button>
+                  </div>
+                </GlassCard>
+              ))}
+            </div>
+          ) : (
+            <GlassCard className="max-w-2xl mx-auto">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                <ShoppingCart className="text-purple-400" />
+                Weekly Shopping List
               </h3>
-              <div className="space-y-2">
-                {mealTypes.map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => setActiveMealType(type.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all",
-                      activeMealType === type.id 
-                        ? "bg-cyan-500/10 border-cyan-500/50 text-white" 
-                        : "bg-white/5 border-white/5 text-slate-400 hover:bg-white/10"
-                    )}
-                  >
-                    <type.icon size={16} className={cn(activeMealType === type.id ? type.color : "text-slate-500")} />
-                    <span className="text-sm font-medium">{type.label}</span>
-                  </button>
+              <div className="space-y-4">
+                {['Produce', 'Dairy', 'Meat', 'Pantry'].map(cat => (
+                  <div key={cat}>
+                    <h5 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{cat}</h5>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors">
+                        <input type="checkbox" className="w-4 h-4 rounded border-white/10 bg-transparent text-cyan-500" />
+                        <span className="text-sm text-slate-300">Fresh Spinach (200g)</span>
+                      </label>
+                    </div>
+                  </div>
                 ))}
               </div>
-            </div>
-
-            <div>
-              <h3 className="text-white font-bold text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
-                <Filter size={14} className="text-purple-400" />
-                Smart Filters
-              </h3>
-              <div className="space-y-2">
-                {smartFilters.map((filter) => (
-                  <button
-                    key={filter.id}
-                    onClick={() => setActiveFilter(activeFilter === filter.id ? null : filter.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-4 py-2.5 rounded-xl border transition-all",
-                      activeFilter === filter.id 
-                        ? "bg-purple-500/10 border-purple-500/50 text-white" 
-                        : "bg-white/5 border-white/5 text-slate-400 hover:bg-white/10"
-                    )}
-                  >
-                    <filter.icon size={16} className={cn(activeFilter === filter.id ? filter.color : "text-slate-500")} />
-                    <span className="text-sm font-medium">{filter.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-white/10">
-              <label className="flex items-center justify-between cursor-pointer group">
-                <span className="text-xs text-slate-400 group-hover:text-white transition-colors">Calorie Optimization</span>
-                <div 
-                  onClick={() => setUseCalorieRange(!useCalorieRange)}
-                  className={cn(
-                    "w-10 h-5 rounded-full transition-colors relative",
-                    useCalorieRange ? "bg-cyan-500" : "bg-white/10"
-                  )}
-                >
-                  <div className={cn(
-                    "absolute top-1 w-3 h-3 bg-white rounded-full transition-all",
-                    useCalorieRange ? "left-6" : "left-1"
-                  )} />
-                </div>
-              </label>
-              <p className="text-[10px] text-slate-500 mt-2">
-                Matches recipes to your daily goal of {profile.calorieGoal} kcal.
-              </p>
-            </div>
-          </GlassCard>
+            </GlassCard>
+          )}
         </div>
+      )}
 
-        <div className="lg:col-span-3">
-          <AnimatePresence mode="popLayout">
-            {loading ? (
-              <motion.div 
-                key="loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6"
+      {cookingMode && (
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-xl z-[100] flex items-center justify-center p-8">
+          <div className="max-w-3xl w-full text-center space-y-8">
+            <h2 className="text-5xl font-black text-white">Step 1: Preparation</h2>
+            <p className="text-2xl text-slate-400 leading-relaxed">
+              Wash the spinach and slice the grilled chicken into thin strips.
+            </p>
+            <div className="flex justify-center gap-6">
+              <button className="p-6 bg-white/5 rounded-full text-white hover:bg-white/10 transition-all">
+                <Mic size={32} />
+              </button>
+              <button 
+                onClick={() => setCookingMode(false)}
+                className="px-12 py-4 bg-red-500 text-white rounded-2xl font-bold text-xl"
               >
-                {Array(6).fill(0).map((_, i) => (
-                  <div key={i} className="h-[400px] bg-white/5 rounded-[24px] animate-pulse" />
-                ))}
-              </motion.div>
-            ) : recommendations.length > 0 ? (
-              <motion.div 
-                key="results"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6"
-              >
-                {recommendations.map((item, i) => (
-                  <motion.div
-                    key={item.recipe.uri}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.05 }}
-                  >
-                    <GlassCard className="h-full flex flex-col p-0 overflow-hidden group border-white/10 hover:border-white/20 transition-colors">
-                      <div className="relative h-44 overflow-hidden">
-                        <img 
-                          src={item.recipe.image} 
-                          alt={item.recipe.label} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        />
-                        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] font-bold text-white uppercase tracking-tighter">
-                          {item.recipe.dietLabels[0] || 'Healthy'}
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                          <div className="flex items-center gap-3 text-white text-[10px] font-bold">
-                            <span className="flex items-center gap-1"><Clock size={12} /> {item.recipe.totalTime || 30}m</span>
-                            <span className="flex items-center gap-1"><Flame size={12} /> {Math.round(item.recipe.calories / item.recipe.yield)} kcal</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 flex-1 flex flex-col">
-                        <h4 className="text-white font-bold text-sm mb-3 line-clamp-2 h-10">{item.recipe.label}</h4>
-                        
-                        <div className="grid grid-cols-3 gap-2 mb-4">
-                          <div className="text-center p-1.5 bg-white/5 rounded-lg">
-                            <div className="text-[10px] text-cyan-400 font-bold">
-                              {((item.recipe.totalNutrients?.PROCNT?.quantity || 0) / item.recipe.yield).toFixed(0)}g
-                            </div>
-                            <div className="text-[8px] text-slate-500 uppercase">Prot</div>
-                          </div>
-                          <div className="text-center p-1.5 bg-white/5 rounded-lg">
-                            <div className="text-[10px] text-purple-400 font-bold">
-                              {((item.recipe.totalNutrients?.CHOCDF?.quantity || 0) / item.recipe.yield).toFixed(0)}g
-                            </div>
-                            <div className="text-[8px] text-slate-500 uppercase">Carb</div>
-                          </div>
-                          <div className="text-center p-1.5 bg-white/5 rounded-lg">
-                            <div className="text-[10px] text-pink-400 font-bold">
-                              {((item.recipe.totalNutrients?.FAT?.quantity || 0) / item.recipe.yield).toFixed(0)}g
-                            </div>
-                            <div className="text-[8px] text-slate-500 uppercase">Fat</div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1 mb-6">
-                          {item.recipe.healthLabels.slice(0, 2).map((label: string) => (
-                            <span key={label} className="text-[8px] bg-white/5 text-slate-400 px-1.5 py-0.5 rounded border border-white/5">
-                              {label}
-                            </span>
-                          ))}
-                        </div>
-
-                        <div className="mt-auto flex gap-2">
-                          <a 
-                            href={item.recipe.url} 
-                            target="_blank" 
-                            rel="noreferrer"
-                            className="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-white py-2 rounded-xl text-xs font-bold transition-colors border border-white/10"
-                          >
-                            Recipe <ExternalLink size={12} />
-                          </a>
-                          <button 
-                            onClick={() => addToLog(item.recipe)}
-                            className="w-10 h-10 flex items-center justify-center bg-cyan-500 hover:bg-cyan-400 text-white rounded-xl transition-colors shadow-lg shadow-cyan-500/20"
-                            title="Add to Log"
-                          >
-                            <Plus size={18} />
-                          </button>
-                        </div>
-                      </div>
-                    </GlassCard>
-                  </motion.div>
-                ))}
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="col-span-full text-center py-20"
-              >
-                <ChefHat size={48} className="mx-auto text-slate-700 mb-4" />
-                <h3 className="text-white font-bold">No recipes found</h3>
-                <p className="text-slate-500 text-sm mt-2">Try adjusting your dietary restrictions or disabling calorie optimization.</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                Exit Mode
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
