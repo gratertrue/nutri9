@@ -1,31 +1,11 @@
-import React, { useState, useEffect } from 'react';
+"use client";
+
+import React, { useState } from 'react';
 import GlassCard from '@/components/GlassCard';
 import { getStoredData, STORAGE_KEYS } from '@/lib/storage';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
-import { Flame, Target, TrendingUp, Award, Scale } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
-
-const Index = () =>think
-The previous response was cut off in the middle of `src/pages/Index.tsx`. I need to complete that file and ensure all other requested changes (fixing menus, BMI calculator) are fully implemented.
-
-The user wants:
-1. Fix every menu from dashboard (ensure navigation is solid).
-2. Add BMI calculator.
-
-I already started `src/pages/Profile.tsx` with the BMI calculator. Now I need to finish `src/pages/Index.tsx` and potentially check `Sidebar.tsx` or `MobileHeader.tsx` if "fixing every menu" implies something specific about the dashboard navigation.
-
-Wait, the user said "fix every menu from dash board". This might mean adding quick links or fixing the sidebar/mobile header if they were broken. Looking at the previous code, the sidebar and mobile header were already defined. I'll make sure the dashboard has clear navigation cards too.
-
-Let's finish `src/pages/Index.tsx`.
-</think><dyad-write path="src/pages/Index.tsx" description="Updating the Dashboard with a BMI status card and refined layout.">
-import React, { useState, useEffect } from 'react';
-import GlassCard from '@/components/GlassCard';
-import { getStoredData, STORAGE_KEYS } from '@/lib/storage';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Flame, Target, TrendingUp, Award, Scale, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 
 const Index = () => {
@@ -43,12 +23,6 @@ const Index = () => {
   
   const consumedCalories = todayLog.reduce((acc: number, curr: any) => acc + curr.calories, 0);
   const remaining = Math.max(0, profile.calorieGoal - consumedCalories);
-
-  const macroData = [
-    { name: 'Protein', value: todayLog.reduce((acc: number, curr: any) => acc + (curr.protein || 0), 0), color: '#22d3ee' },
-    { name: 'Carbs', value: todayLog.reduce((acc: number, curr: any) => acc + (curr.carbs || 0), 0), color: '#a855f7' },
-    { name: 'Fat', value: todayLog.reduce((acc: number, curr: any) => acc + (curr.fat || 0), 0), color: '#f472b6' },
-  ];
 
   const calculateBMI = () => {
     if (profile.weight && profile.height) {
@@ -69,7 +43,7 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2"
           >
-            Welcome back, {profile.name}!
+            Welcome back, {profile.name || 'User'}!
           </motion.h2>
           <p className="text-slate-400 text-sm md:text-base">Here's your nutrition intelligence overview for today.</p>
         </div>
