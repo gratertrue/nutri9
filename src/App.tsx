@@ -11,6 +11,9 @@ import Index from "./pages/Index";
 import FoodLookup from "./pages/FoodLookup";
 import Profile from "./pages/Profile";
 import Achievements from "./pages/Achievements";
+import DailyLog from "./pages/DailyLog";
+import History from "./pages/History";
+import MealPlanner from "./pages/MealPlanner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,9 +33,9 @@ const App = () => (
               <Route path="/lookup" element={<FoodLookup />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/achievements" element={<Achievements />} />
-              <Route path="/planner" element={<div className="p-8 text-center text-slate-500">Meal Planner API integration requires active subscription. Mocking data...</div>} />
-              <Route path="/log" element={<div className="p-8 text-center text-slate-500">Daily Log feature coming soon.</div>} />
-              <Route path="/history" element={<div className="p-8 text-center text-slate-500">Nutrition History feature coming soon.</div>} />
+              <Route path="/planner" element={<MealPlanner />} />
+              <Route path="/log" element={<DailyLog />} />
+              <Route path="/history" element={<History />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
