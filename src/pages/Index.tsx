@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import GlassCard from '@/components/GlassCard';
 import { getStoredData, STORAGE_KEYS } from '@/lib/storage';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
@@ -23,35 +23,35 @@ const Index = () => {
   ];
 
   return (
-    <div className="p-8 space-y-8 max-w-7xl mx-auto">
-      <header className="flex justify-between items-end">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold text-white mb-2"
+            className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2"
           >
             Welcome back, {profile.name}!
           </motion.h2>
-          <p className="text-slate-400">Here's your nutrition intelligence overview for today.</p>
+          <p className="text-slate-400 text-sm md:text-base">Here's your nutrition intelligence overview for today.</p>
         </div>
-        <div className="flex gap-4">
-          <GlassCard className="py-2 px-4 flex items-center gap-2">
+        <div className="flex gap-4 w-full md:w-auto">
+          <GlassCard className="py-2 px-4 flex items-center gap-2 w-full md:w-auto justify-center">
             <Award className="text-yellow-400" size={20} />
             <span className="text-white font-bold">{points} pts</span>
           </GlassCard>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <GlassCard className="relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-            <Flame size={80} className="text-orange-500" />
+            <Flame size={60} className="text-orange-500 md:w-20 md:h-20" />
           </div>
-          <h3 className="text-slate-400 text-sm font-medium mb-4">Daily Calories</h3>
+          <h3 className="text-slate-400 text-xs md:text-sm font-medium mb-4">Daily Calories</h3>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold text-white">{consumedCalories}</span>
-            <span className="text-slate-500">/ {profile.calorieGoal} kcal</span>
+            <span className="text-3xl md:text-4xl font-bold text-white">{consumedCalories}</span>
+            <span className="text-slate-500 text-sm">/ {profile.calorieGoal} kcal</span>
           </div>
           <div className="mt-6 h-2 bg-white/5 rounded-full overflow-hidden">
             <motion.div 
@@ -60,19 +60,19 @@ const Index = () => {
               className="h-full bg-gradient-to-r from-cyan-500 to-blue-500"
             />
           </div>
-          <p className="mt-4 text-sm text-cyan-400 font-medium">{remaining} kcal remaining</p>
+          <p className="mt-4 text-xs md:text-sm text-cyan-400 font-medium">{remaining} kcal remaining</p>
         </GlassCard>
 
         <GlassCard className="md:col-span-2">
-          <h3 className="text-slate-400 text-sm font-medium mb-4">Macro Distribution</h3>
-          <div className="grid grid-cols-2 gap-8">
-            <div className="h-40">
+          <h3 className="text-slate-400 text-xs md:text-sm font-medium mb-4">Macro Distribution</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
+            <div className="h-32 md:h-40">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={macroData}
-                    innerRadius={50}
-                    outerRadius={70}
+                    innerRadius={40}
+                    outerRadius={60}
                     paddingAngle={5}
                     dataKey="value"
                   >
@@ -86,14 +86,14 @@ const Index = () => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex flex-col justify-center space-y-4">
+            <div className="flex flex-col justify-center space-y-3 md:space-y-4">
               {macroData.map((macro) => (
                 <div key={macro.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: macro.color }} />
-                    <span className="text-slate-300">{macro.name}</span>
+                    <span className="text-slate-300 text-sm">{macro.name}</span>
                   </div>
-                  <span className="text-white font-bold">{macro.value.toFixed(1)}g</span>
+                  <span className="text-white font-bold text-sm">{macro.value.toFixed(1)}g</span>
                 </div>
               ))}
             </div>
@@ -101,19 +101,19 @@ const Index = () => {
         </GlassCard>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <GlassCard>
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-white font-bold flex items-center gap-2">
+            <h3 className="text-white font-bold flex items-center gap-2 text-sm md:text-base">
               <TrendingUp size={20} className="text-cyan-400" />
               Weekly Progress
             </h3>
           </div>
-          <div className="h-64">
+          <div className="h-48 md:h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={log.slice(-7)}>
-                <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickFormatter={(val) => val.split('-')[2]} />
-                <YAxis stroke="#64748b" fontSize={12} />
+                <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickFormatter={(val) => val.split('-')[2]} />
+                <YAxis stroke="#64748b" fontSize={10} />
                 <Tooltip 
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                   contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '8px' }}
@@ -126,19 +126,19 @@ const Index = () => {
 
         <GlassCard>
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-white font-bold flex items-center gap-2">
+            <h3 className="text-white font-bold flex items-center gap-2 text-sm md:text-base">
               <Target size={20} className="text-purple-400" />
               AI Insights
             </h3>
           </div>
-          <div className="space-y-4">
-            <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-              <p className="text-slate-300 text-sm leading-relaxed">
+          <div className="space-y-3 md:space-y-4">
+            <div className="p-3 md:p-4 bg-white/5 rounded-2xl border border-white/10">
+              <p className="text-slate-300 text-xs md:text-sm leading-relaxed">
                 "Based on your activity levels, you're hitting your protein goals consistently. Consider increasing fiber intake during lunch to maintain energy levels."
               </p>
             </div>
-            <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-              <p className="text-slate-300 text-sm leading-relaxed">
+            <div className="p-3 md:p-4 bg-white/5 rounded-2xl border border-white/10">
+              <p className="text-slate-300 text-xs md:text-sm leading-relaxed">
                 "You tend to consume 20% more calories on weekends. Try meal prepping on Fridays to stay on track."
               </p>
             </div>
