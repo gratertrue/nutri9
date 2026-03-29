@@ -75,22 +75,18 @@ export const searchRecipes = async (params: {
   diet?: string;
 }) => {
   try {
-    // Using Edamam Recipe API v2
-    const url = new URL("https://api.edamam.com/api/recipes/v2");
-    url.searchParams.append("type", "public");
+    // Reverting to v1 Search API which is more compatible with these keys
+    const url = new URL("https://api.edamam.com/search");
     url.searchParams.append("q", params.query);
     url.searchParams.append("app_id", RECIPE_APP_ID);
     url.searchParams.append("app_key", RECIPE_APP_KEY);
+    url.searchParams.append("from", "0");
+    url.searchParams.append("to", "12");
     
     if (params.health && params.health.length > 0) {
       params.health.forEach(h => {
-        const label = h.toLowerCase().replace(/\s+/g, '-');
-        url.searchParams.append("health", label);
+        url.searchParams.append("health", h.toLowerCase().replace(/\s+/g, '-'));
       });
-    }
-
-    if (params.mealType) {
-      url.searchParams.append("mealType", params.mealType);
     }
 
     if (params.calories) {
@@ -101,11 +97,7 @@ export const searchRecipes = async (params: {
       url.searchParams.append("diet", params.diet);
     }
 
-    const response = await fetch(url.toString(), {
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
+    const response = await fetch(url.toString());
     
     if (!response.ok) {
       console.error("Edamam API Error:", response.status);
@@ -136,14 +128,12 @@ export const getRecommendations = async (params: {
   const queries = baseQueries[mealTypeKey] || baseQueries.lunch;
   const randomQuery = queries[Math.floor(Math.random() * queries.length)];
   
-  const finalQuery = params.healthLabels.length > 0 
-    ? `${randomQuery} ${params.healthLabels[0]}`
-    : randomQuery;
+  // Combine meal type and random query for better results in v1
+  const finalQuery = `${mealTypeKey} ${randomQuery} ${params.healthLabels.length > 0 ? params.healthLabels[0] : ''}`.trim();
 
   return searchRecipes({
     query: finalQuery,
     health: params.healthLabels,
-    mealType: params.mealType,
     calories: params.calories,
     diet: params.diet
   });
