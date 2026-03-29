@@ -4,26 +4,13 @@ export const STORAGE_KEYS = {
   FOOD_LOG: 'nutri_food_log',
   FAVORITES: 'nutri_favorites',
   COMPLETION: 'nutri_meal_completion',
-  MEAL_PLAN: 'nutri_current_meal_plan', // Dedicated key for the plan object
   BMI_HISTORY: 'nutri_bmi_history',
-  WEIGHT_HISTORY: 'nutri_weight_history',
-  USER_PROFILE: 'nutri_user_profile',
-  POINTS: 'nutri_points',
-  WATER_INTAKE: 'nutri_water_intake'
+  POINTS: 'nutri_points'
 };
 
 export const getStoredData = <T>(key: string, defaultValue: T): T => {
-  try {
-    const stored = localStorage.getItem(key);
-    if (!stored) return defaultValue;
-    const parsed = JSON.parse(stored);
-    // Basic type safety check
-    if (Array.isArray(defaultValue) && !Array.isArray(parsed)) return defaultValue;
-    if (typeof defaultValue === 'object' && defaultValue !== null && (Array.isArray(parsed) || typeof parsed !== 'object')) return defaultValue;
-    return parsed;
-  } catch (e) {
-    return defaultValue;
-  }
+  const stored = localStorage.getItem(key);
+  return stored ? JSON.parse(stored) : defaultValue;
 };
 
 export const setStoredData = (key: string, data: any) => {
