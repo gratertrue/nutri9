@@ -36,7 +36,8 @@ export const detectUPF = (ingredients: string[] = []) => {
   const upfKeywords = [
     'artificial sweetener', 'bha', 'bht', 'sodium nitrite', 
     'hydrogenated oil', 'hfcs', 'maltodextrin', 'corn syrup',
-    'aspartame', 'sucralose', 'saccharin', 'acesulfame'
+    'aspartame', 'sucralose', 'saccharin', 'acesulfame', 'monosodium glutamate',
+    'carrageenan', 'guar gum', 'xanthan gum', 'artificial flavor'
   ];
   
   const detected = ingredients.filter(ing => 
@@ -49,11 +50,27 @@ export const detectUPF = (ingredients: string[] = []) => {
   };
 };
 
-export const getEnvironmentalImpact = (foodName: string) => {
-  const lower = foodName.toLowerCase();
-  if (lower.includes('beef') || lower.includes('lamb')) return 'High';
-  if (lower.includes('chicken') || lower.includes('pork') || lower.includes('cheese')) return 'Medium';
-  return 'Low';
+export const getAllergenAlerts = (ingredients: string[] = []) => {
+  const allergens = {
+    Milk: ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'lactose'],
+    Eggs: ['egg'],
+    Fish: ['fish', 'salmon', 'tuna', 'cod'],
+    Shellfish: ['shrimp', 'crab', 'lobster', 'mussel'],
+    TreeNuts: ['almond', 'walnut', 'cashew', 'pistachio'],
+    Peanuts: ['peanut'],
+    Wheat: ['wheat', 'flour', 'gluten'],
+    Soy: ['soy', 'tofu', 'edamame'],
+    Sesame: ['sesame']
+  };
+
+  const alerts: string[] = [];
+  const text = ingredients.join(' ').toLowerCase();
+
+  Object.entries(allergens).forEach(([name, keywords]) => {
+    if (keywords.some(k => text.includes(k))) alerts.push(name);
+  });
+
+  return alerts;
 };
 
 export const analyzeHealthConditions = (data: any, conditions: string[]) => {
@@ -84,4 +101,11 @@ export const analyzeHealthConditions = (data: any, conditions: string[]) => {
   }
 
   return alerts;
+};
+
+export const getEnvironmentalImpact = (foodName: string) => {
+  const lower = foodName.toLowerCase();
+  if (lower.includes('beef') || lower.includes('lamb')) return 'High';
+  if (lower.includes('chicken') || lower.includes('pork') || lower.includes('cheese')) return 'Medium';
+  return 'Low';
 };
