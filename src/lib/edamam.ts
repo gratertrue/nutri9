@@ -75,12 +75,12 @@ export const searchRecipes = async (params: {
   diet?: string;
 }) => {
   try {
-    const url = new URL("https://api.edamam.com/search");
+    // Using Edamam Recipe API v2
+    const url = new URL("https://api.edamam.com/api/recipes/v2");
+    url.searchParams.append("type", "public");
     url.searchParams.append("q", params.query);
     url.searchParams.append("app_id", RECIPE_APP_ID);
     url.searchParams.append("app_key", RECIPE_APP_KEY);
-    url.searchParams.append("from", "0");
-    url.searchParams.append("to", "20");
     
     if (params.health && params.health.length > 0) {
       params.health.forEach(h => {
@@ -101,10 +101,20 @@ export const searchRecipes = async (params: {
       url.searchParams.append("diet", params.diet);
     }
 
-    const response = await fetch(url.toString());
-    if (!response.ok) return null;
+    const response = await fetch(url.toString(), {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      console.error("Edamam API Error:", response.status);
+      return null;
+    }
+    
     return await response.json();
   } catch (error) {
+    console.error("Fetch Error:", error);
     return null;
   }
 };
@@ -115,7 +125,6 @@ export const getRecommendations = async (params: {
   calories?: string;
   diet?: string;
 }) => {
-  // Create a more diverse query based on meal type and health labels
   const baseQueries: Record<string, string[]> = {
     breakfast: ['oats', 'eggs', 'smoothie', 'pancakes', 'yogurt'],
     lunch: ['salad', 'sandwich', 'bowl', 'soup', 'wrap'],

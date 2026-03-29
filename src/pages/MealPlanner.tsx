@@ -53,7 +53,6 @@ const MealPlanner = () => {
   const fetchMeals = async () => {
     setLoading(true);
     try {
-      // Calculate calorie range per meal (approx 30% for main meals, 10% for snacks)
       let calorieRange = "";
       if (useCalorieRange) {
         const perMeal = activeMealType === 'snack' 
@@ -75,7 +74,7 @@ const MealPlanner = () => {
         setRecommendations(data.hits);
       } else {
         setRecommendations([]);
-        showError("No recipes found with these filters. Try broadening your search.");
+        showError("No recipes found. Try broadening your search.");
       }
     } catch (error) {
       console.error("Failed to fetch meals", error);
@@ -128,7 +127,6 @@ const MealPlanner = () => {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar Filters */}
         <div className="space-y-6">
           <GlassCard className="p-4 space-y-6">
             <div>
@@ -202,16 +200,29 @@ const MealPlanner = () => {
           </GlassCard>
         </div>
 
-        {/* Recipe Grid */}
         <div className="lg:col-span-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-            <AnimatePresence mode="wait">
-              {loading ? (
-                Array(6).fill(0).map((_, i) => (
+          <AnimatePresence mode="popLayout">
+            {loading ? (
+              <motion.div 
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6"
+              >
+                {Array(6).fill(0).map((_, i) => (
                   <div key={i} className="h-[400px] bg-white/5 rounded-[24px] animate-pulse" />
-                ))
-              ) : recommendations.length > 0 ? (
-                recommendations.map((item, i) => (
+                ))}
+              </motion.div>
+            ) : recommendations.length > 0 ? (
+              <motion.div 
+                key="results"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6"
+              >
+                {recommendations.map((item, i) => (
                   <motion.div
                     key={item.recipe.uri}
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -288,16 +299,22 @@ const MealPlanner = () => {
                       </div>
                     </GlassCard>
                   </motion.div>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-20">
-                  <ChefHat size={48} className="mx-auto text-slate-700 mb-4" />
-                  <h3 className="text-white font-bold">No recipes found</h3>
-                  <p className="text-slate-500 text-sm mt-2">Try adjusting your dietary restrictions or disabling calorie optimization.</p>
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="col-span-full text-center py-20"
+              >
+                <ChefHat size={48} className="mx-auto text-slate-700 mb-4" />
+                <h3 className="text-white font-bold">No recipes found</h3>
+                <p className="text-slate-500 text-sm mt-2">Try adjusting your dietary restrictions or disabling calorie optimization.</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>
