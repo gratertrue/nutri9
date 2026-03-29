@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
@@ -12,7 +14,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const navItems = [
+export const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Search, label: 'Food Lookup', path: '/lookup' },
   { icon: Calendar, label: 'Meal Planner', path: '/planner' },
@@ -24,7 +26,7 @@ const navItems = [
 
 const Sidebar = () => {
   return (
-    <aside className="w-64 h-screen sticky top-0 bg-slate-950/50 backdrop-blur-xl border-r border-white/10 p-6 flex flex-col">
+    <aside className="hidden md:flex w-64 h-screen sticky top-0 bg-slate-950/50 backdrop-blur-xl border-r border-white/10 p-6 flex-col">
       <div className="flex items-center gap-3 mb-10 px-2">
         <div className="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.5)]">
           <Zap className="text-white fill-white" size={24} />

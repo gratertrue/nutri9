@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+"use client";
+
+import React, { useState } from 'react';
 import GlassCard from '@/components/GlassCard';
 import { getStoredData, STORAGE_KEYS } from '@/lib/storage';
 import { Trophy, Star, Zap, Flame, Award, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import confetti from 'canvas-confetti';
 import { cn } from '@/lib/utils';
 
 const achievementsList = [
@@ -15,36 +16,35 @@ const achievementsList = [
 
 const Achievements = () => {
   const [points] = useState(() => getStoredData(STORAGE_KEYS.POINTS, 0));
-  const [unlocked] = useState(() => getStoredData(STORAGE_KEYS.ACHIEVEMENTS, ['streak_3'])); // Mock unlocked
+  const [unlocked] = useState(() => getStoredData(STORAGE_KEYS.ACHIEVEMENTS, ['streak_3']));
 
   const level = Math.floor(points / 500) + 1;
   const progress = (points % 500) / 5;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
-      <header className="flex justify-between items-center">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold text-white mb-2">Achievements</h2>
           <p className="text-slate-400">Track your progress and unlock rewards.</p>
         </div>
-        <div className="text-right">
+        <div className="text-left md:text-right">
           <div className="text-4xl font-black text-white">{points}</div>
           <div className="text-xs text-slate-500 uppercase tracking-widest">Total Points</div>
         </div>
       </header>
 
       <GlassCard className="relative overflow-hidden">
-        <div className="flex items-center gap-6">
+        <div className="flex flex-col md:flex-row items-center gap-6">
           <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center text-4xl font-bold text-white shadow-lg">
             {level}
           </div>
-          <div className="flex-1">
+          <div className="flex-1 w-full">
             <div className="flex justify-between mb-2">
               <span className="text-white font-bold">Level {level} Explorer</span>
               <span className="text-slate-400 text-sm">{points % 500} / 500 XP</span>
             </div>
-            <div className="h-3 bg-white/5 rounded-full overflow
--hidden">
+            <div className="h-3 bg-white/5 rounded-full overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
@@ -71,7 +71,7 @@ const Achievements = () => {
               )}>
                 <div className="flex gap-5">
                   <div className={cn(
-                    "w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center",
+                    "w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center shrink-0",
                     ach.color
                   )}>
                     <ach.icon size={28} />
