@@ -5,19 +5,49 @@ import GlassCard from '@/components/GlassCard';
 import { analyzeNutrition, searchRecipes } from '@/lib/edamam';
 import { calculateHealthyScore, analyzeHealthConditions } from '@/lib/scoring';
 import { getStoredData, STORAGE_KEYS, setStoredData, updatePoints } from '@/lib/storage';
-import { Search, Info, AlertTriangle, CheckCircle2, Plus, Loader2, Sparkles } from 'lucide-react';
+import { 
+  Search, 
+  Info, 
+  AlertTriangle, 
+  CheckCircle2, 
+  Plus, 
+  Loader2, 
+  Sparkles,
+  Apple,
+  Beef,
+  Leaf,
+  Coffee,
+  Cookie,
+  Filter,
+  ChevronRight
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { showSuccess, showError } from '@/utils/toast';
 import { cn } from '@/lib/utils';
+
+const categories = [
+  { id: 'fruits', label: 'Fruits', icon: Apple, color: 'text-red-400', items: ['Apple', 'Banana', 'Orange', 'Strawberry', 'Blueberries'] },
+  { id: 'proteins', label: 'Proteins', icon: Beef, color: 'text-orange-400', items: ['Chicken Breast', 'Salmon', 'Tofu', 'Eggs', 'Greek Yogurt'] },
+  { id: 'veggies', label: 'Vegetables', icon: Leaf, color: 'text-green-400', items: ['Broccoli', 'Spinach', 'Kale', 'Carrot', 'Avocado'] },
+  { id: 'drinks', label: 'Drinks', icon: Coffee, color: 'text-cyan-400', items: ['Coffee', 'Green Tea', 'Orange Juice', 'Smoothie'] },
+  { id: 'snacks', label: 'Snacks', icon: Cookie, color: 'text-purple-400', items: ['Almonds', 'Dark Chocolate', 'Hummus', 'Walnuts'] },
+];
+
+const dietTags = [
+  { label: 'High Protein', query: 'high protein' },
+  { label: 'Low Carb', query: 'low carb' },
+  { label: 'Vegan', query: 'vegan' },
+  { label: 'Keto', query: 'keto' },
+  { label: 'Gluten Free', query: 'gluten free' },
+];
 
 const FoodLookup = () => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [recipes, setRecipes] = useState<any[]>([]);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [profile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, { healthConditions: [] }));
-
-  const examples = ["1 large apple", "100g grilled salmon", "1 cup of coffee", "1 avocado"];
 
   const handleSearch = async (e?: React.FormEvent, testQuery?: string) => {
     if (e) e.preventDefault();
@@ -31,19 +61,17 @@ const FoodLookup = () => {
     try {
       const data = await analyzeNutrition(searchQuery);
       
-      // Check if data exists and has weight (meaning it was successfully parsed)
       if (data && data.totalWeight > 0) {
         const score = calculateHealthyScore(data);
         const alerts = analyzeHealthConditions(data, profile.healthConditions || []);
         setResult({ ...data, score, alerts });
         
-        // Also search for related recipes
         const recipeData = await searchRecipes(searchQuery);
         if (recipeData) setRecipes(recipeData.hits.slice(0, 4));
         
         updatePoints(10);
       } else {
-        showError("Could not analyze this food. Try being more specific (e.g., '1 large apple')");
+        showError("Could not analyze this food. Try being more specific.");
       }
     } catch (err) {
       showError("An error occurred during analysis.");
@@ -69,19 +97,20 @@ const FoodLookup = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8">
       <header>
         <h2 className="text-3xl font-bold text-white mb-2">Nutrition Intelligence</h2>
-        <p className="text-slate-400">Analyze any food or ingredient with AI-powered precision.</p>
+        <p className="text-slate-400">Analyze any food or browse our curated database.</p>
       </header>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
+        {/* Search Bar */}
         <form onSubmit={(e) => handleSearch(e)} className="relative">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g., 100g grilled chicken breast or 1 avocado"
+            placeholder="Search for food (e.g., 100g salmon)..."
             className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 pl-14 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
           />
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
@@ -93,20 +122,68 @@ const FoodLookup = () => {
           </button>
         </form>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-xs text-slate-500 uppercase font-bold flex items-center gap-1">
-            <Sparkles size={12} /> Quick Test:
-          </span>
-          {examples.map((ex) => (
+        {/* Diet Tags */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 text-slate-500 mr-2">
+            <Filter size={14} />
+            <span className="text-xs font-bold uppercase tracking-wider">Quick Filters:</span>
+          </div>
+          {dietTags.map((tag) => (
             <button
-              key={ex}
-              onClick={() => handleSearch(undefined, ex)}
-              className="text-xs bg-white/5 hover:bg-white/10 text-slate-300 px-3 py-1.5 rounded-full border border-white/10 transition-colors"
+              key={tag.label}
+              onClick={() => handleSearch(undefined, tag.query)}
+              className="text-xs bg-white/5 hover:bg-cyan-500/20 hover:text-cyan-400 text-slate-400 px-3 py-1.5 rounded-full border border-white/10 transition-all"
             >
-              {ex}
+              {tag.label}
             </button>
           ))}
         </div>
+
+        {/* Advanced Categories */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
+              className={cn(
+                "flex flex-col items-center gap-3 p-4 rounded-2xl border transition-all duration-300",
+                activeCategory === cat.id 
+                  ? "bg-white/15 border-cyan-500/50 shadow-lg shadow-cyan-500/10" 
+                  : "bg-white/5 border-white/10 hover:bg-white/10"
+              )}
+            >
+              <cat.icon className={cn("w-6 h-6", cat.color)} />
+              <span className="text-sm font-medium text-white">{cat.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Category Items List */}
+        <AnimatePresence>
+          {activeCategory && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <GlassCard className="bg-white/5 border-white/10">
+                <div className="flex flex-wrap gap-3">
+                  {categories.find(c => c.id === activeCategory)?.items.map((item) => (
+                    <button
+                      key={item}
+                      onClick={() => handleSearch(undefined, item)}
+                      className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-sm text-slate-300 transition-colors group"
+                    >
+                      {item}
+                      <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  ))}
+                </div>
+              </GlassCard>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <AnimatePresence mode="wait">
@@ -179,7 +256,10 @@ const FoodLookup = () => {
             </GlassCard>
 
             <div className="space-y-6">
-              <h4 className="text-white font-bold">Related Recipes</h4>
+              <h4 className="text-white font-bold flex items-center gap-2">
+                <Sparkles size={18} className="text-yellow-400" />
+                Related Recipes
+              </h4>
               {recipes.length > 0 ? recipes.map((item, i) => (
                 <motion.div 
                   key={i}
