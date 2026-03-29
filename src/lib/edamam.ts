@@ -6,7 +6,7 @@ const FOOD_APP_KEY = "4ef9911c1a046060203091660977ee0d";
 const RECIPE_APP_ID = "23cc0b56"; 
 const RECIPE_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 
-// Using CodeTabs proxy which is often more reliable for these APIs
+// Using CodeTabs proxy
 const PROXY_URL = "https://api.codetabs.com/v1/proxy?quest=";
 
 export const analyzeNutrition = async (ingr: string) => {
@@ -78,16 +78,23 @@ export const searchRecipes = async (params: {
   diet?: string;
 }) => {
   try {
-    // Using v2 API which is the current standard and more likely to work with these keys
     const url = new URL("https://api.edamam.com/api/recipes/v2");
     url.searchParams.append("type", "public");
     url.searchParams.append("q", params.query);
     url.searchParams.append("app_id", RECIPE_APP_ID);
     url.searchParams.append("app_key", RECIPE_APP_KEY);
     
+    // Edamam v2 expects specific casing for mealType (e.g., Lunch, Dinner)
+    if (params.mealType) {
+      const formattedMealType = params.mealType.charAt(0).toUpperCase() + params.mealType.slice(1).toLowerCase();
+      url.searchParams.append("mealType", formattedMealType);
+    }
+
     if (params.health && params.health.length > 0) {
       params.health.forEach(h => {
-        url.searchParams.append("health", h.toLowerCase().replace(/\s+/g, '-'));
+        // Map common labels to Edamam expected format
+        const label = h.toLowerCase().replace(/\s+/g, '-');
+        url.searchParams.append("health", label);
       });
     }
 
@@ -99,20 +106,13 @@ export const searchRecipes = async (params: {
       url.searchParams.append("diet", params.diet);
     }
 
-    if (params.mealType) {
-      url.searchParams.append("mealType", params.mealType);
-    }
-
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
     
-    if (!response.ok) {
-      console.error("Proxy Error:", response.status);
-      return null;
-    }
+    if (!response.ok) return null;
     
-    return await response.json();
+    const data = await response.json();
+    return data;
   } catch (error) {
-    console.error("Fetch Error:", error);
     return null;
   }
 };
@@ -124,17 +124,18 @@ export const getRecommendations = async (params: {
   diet?: string;
 }) => {
   const baseQueries: Record<string, string[]> = {
-    breakfast: ['oats', 'eggs', 'smoothie', 'pancakes', 'yogurt'],
-    lunch: ['salad', 'sandwich', 'bowl', 'soup', 'wrap'],
-    dinner: ['roast', 'pasta', 'stir fry', 'grill', 'stew'],
-    snack: ['nuts', 'fruit', 'bar', 'dip', 'crackers']
+    breakfast: ['oats', 'eggs', 'smoothie', 'pancakes'],
+    lunch: ['salad', 'sandwich', 'bowl', 'wrap'],
+    dinner: ['chicken', 'pasta', 'salmon', 'steak'],
+    snack: ['nuts', 'fruit', 'yogurt', 'hummus']
   };
 
   const mealTypeKey = params.mealType?.toLowerCase() || 'lunch';
   const queries = baseQueries[mealTypeKey] || baseQueries.lunch;
   const randomQuery = queries[Math.floor(Math.random() * queries.length)];
   
-  const finalQuery = `${mealTypeKey} ${randomQuery} ${params.healthLabels.length > 0 ? params.healthLabels[0] : ''}`.trim();
+  // Keep the query simple to avoid empty results
+  const finalQuery = randomQuery;
 
   return searchRecipes({
     query: finalQuery,
