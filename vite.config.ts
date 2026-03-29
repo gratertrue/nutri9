@@ -7,6 +7,23 @@ export default defineConfig(() => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      '/api/nutrition': {
+        target: 'https://api.edamam.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/nutrition/, '/api/nutrition-data')
+      },
+      '/api/recipes': {
+        target: 'https://api.edamam.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/recipes/, '/api/recipes/v2')
+      },
+      '/api/food-database': {
+        target: 'https://api.edamam.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/food-database/, '/api/food-database/v2')
+      }
+    }
   },
   plugins: [dyadComponentTagger(), react()],
   resolve: {
