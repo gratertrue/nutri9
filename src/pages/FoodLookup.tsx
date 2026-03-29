@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import GlassCard from '@/components/GlassCard';
 import { analyzeNutrition, searchRecipes } from '@/lib/edamam';
 import { calculateHealthyScore, analyzeHealthConditions } from '@/lib/scoring';
@@ -19,7 +19,8 @@ import {
   Coffee,
   Cookie,
   Filter,
-  ChevronRight
+  ChevronRight,
+  Scale
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { showSuccess, showError } from '@/utils/toast';
@@ -45,6 +46,7 @@ const FoodLookup = () => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [weight, setWeight] = useState<number>(100);
   const [recipes, setRecipes] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [profile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, { healthConditions: [] }));
@@ -65,6 +67,7 @@ const FoodLookup = () => {
         const score = calculateHealthyScore(data);
         const alerts = analyzeHealthConditions(data, profile.healthConditions || []);
         setResult({ ...data, score, alerts });
+        setWeight(data.totalWeight || 100);
         
         const recipeData = await searchRecipes(searchQuery);
         if (recipeData) setRecipes(recipeData.hits.slice(0, 4));
@@ -80,20 +83,29 @@ const FoodLookup = () => {
     }
   };
 
-  const addToLog = (food: any) => {
+  const scaleNutrient = (baseValue: number) => {
+    if (!result) return 0;
+    const baseWeight = result.totalWeight || 100;
+    return (baseValue / baseWeight) * weight;
+  };
+
+  const addToLog = () => {
+    if (!result) return;
+    
     const log = getStoredData(STORAGE_KEYS.FOOD_LOG, []);
     const newEntry = {
       id: Date.now(),
       date: new Date().toISOString().split('T')[0],
-      name: query,
-      calories: food.calories || 0,
-      protein: food.totalNutrients?.PROCNT?.quantity || 0,
-      carbs: food.totalNutrients?.CHOCDF?.quantity || 0,
-      fat: food.totalNutrients?.FAT?.quantity || 0,
+      name: `${weight}g ${query}`,
+      calories: Math.round(scaleNutrient(result.calories)),
+      protein: scaleNutrient(result.totalNutrients?.PROCNT?.quantity || 0),
+      carbs: scaleNutrient(result.totalNutrients?.CHOCDF?.quantity || 0),
+      fat: scaleNutrient(result.totalNutrients?.FAT?.quantity || 0),
     };
+    
     setStoredData(STORAGE_KEYS.FOOD_LOG, [...log, newEntry]);
     updatePoints(20);
-    showSuccess("Added to today's log!");
+    showSuccess(`Added ${weight}g of ${query} to log!`);
   };
 
   return (
@@ -198,7 +210,7 @@ const FoodLookup = () => {
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
                 <div>
                   <h3 className="text-xl md:text-2xl font-bold text-white capitalize">{query}</h3>
-                  <p className="text-slate-400 text-sm">{result.calories} kcal per serving</p>
+                  <p className="text-slate-400 text-sm">{Math.round(scaleNutrient(result.calories))} kcal total</p>
                 </div>
                 <div className="text-left sm:text-right">
                   <div className="text-xs text-slate-400 mb-1">Healthy Score</div>
@@ -211,17 +223,60 @@ const FoodLookup = () => {
                 </div>
               </div>
 
+              {/* Weight Adjustment */}
+              <div className="mb-8 p-4 bg-cyan-500/5 border border-cyan-500/10 rounded-2xl">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs font-bold text-cyan-400 uppercase flex items-center gap-2">
+                    <Scale size={14} /> Adjust Weight (grams)
+                  </label>
+                  <span className="text-white font-bold">{weight}g</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="1000" 
+                  value={weight}
+                  onChange={(e) => setWeight(parseInt(e.target.value))}
+                  className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+                <div className="flex justify-between mt-2">
+                  <input 
+                    type="number" 
+                    value={weight}
+                    onChange={(e) => setWeight(Math.max(1, parseInt(e.target.value) || 0))}
+                    className="bg-white/5 border border-white/10 rounded-lg px-3 py-1 text-sm text-white w-20 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  />
+                  <div className="flex gap-2">
+                    {[50, 100, 200, 500].map(val => (
+                      <button 
+                        key={val}
+                        onClick={() => setWeight(val)}
+                        className="text-[10px] bg-white/5 hover:bg-white/10 text-slate-400 px-2 py-1 rounded-md border border-white/10 transition-colors"
+                      >
+                        {val}g
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-3 gap-2 md:gap-4 mb-8">
                 <div className="p-3 md:p-4 bg-white/5 rounded-2xl text-center">
-                  <div className="text-cyan-400 font-bold text-base md:text-xl">{result.totalNutrients?.PROCNT?.quantity.toFixed(1)}g</div>
+                  <div className="text-cyan-400 font-bold text-base md:text-xl">
+                    {scaleNutrient(result.totalNutrients?.PROCNT?.quantity || 0).toFixed(1)}g
+                  </div>
                   <div className="text-[9px] md:text-xs text-slate-500 uppercase">Protein</div>
                 </div>
                 <div className="p-3 md:p-4 bg-white/5 rounded-2xl text-center">
-                  <div className="text-purple-400 font-bold text-base md:text-xl">{result.totalNutrients?.CHOCDF?.quantity.toFixed(1)}g</div>
+                  <div className="text-purple-400 font-bold text-base md:text-xl">
+                    {scaleNutrient(result.totalNutrients?.CHOCDF?.quantity || 0).toFixed(1)}g
+                  </div>
                   <div className="text-[9px] md:text-xs text-slate-500 uppercase">Carbs</div>
                 </div>
                 <div className="p-3 md:p-4 bg-white/5 rounded-2xl text-center">
-                  <div className="text-pink-400 font-bold text-base md:text-xl">{result.totalNutrients?.FAT?.quantity.toFixed(1)}g</div>
+                  <div className="text-pink-400 font-bold text-base md:text-xl">
+                    {scaleNutrient(result.totalNutrients?.FAT?.quantity || 0).toFixed(1)}g
+                  </div>
                   <div className="text-[9px] md:text-xs text-slate-500 uppercase">Fat</div>
                 </div>
               </div>
@@ -247,11 +302,11 @@ const FoodLookup = () => {
               </div>
 
               <button 
-                onClick={() => addToLog(result)}
+                onClick={addToLog}
                 className="w-full mt-8 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl text-sm md:text-base transition-colors"
               >
                 <Plus size={18} />
-                Add to Daily Log
+                Add {weight}g to Daily Log
               </button>
             </GlassCard>
 
