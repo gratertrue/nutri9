@@ -6,8 +6,8 @@ const FOOD_APP_KEY = "4ef9911c1a046060203091660977ee0d";
 const RECIPE_APP_ID = "23cc0b56"; 
 const RECIPE_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 
-// Using a CORS proxy to bypass browser restrictions for the v1 API
-const CORS_PROXY = "https://corsproxy.io/?";
+// Using AllOrigins as a more reliable CORS proxy for v1 API calls
+const PROXY_URL = "https://api.allorigins.win/raw?url=";
 
 export const analyzeNutrition = async (ingr: string) => {
   try {
@@ -16,7 +16,8 @@ export const analyzeNutrition = async (ingr: string) => {
     url.searchParams.append("app_key", FOOD_APP_KEY);
     url.searchParams.append("ingr", ingr);
 
-    const response = await fetch(`${CORS_PROXY}${encodeURIComponent(url.toString())}`);
+    // Food Database v2 usually supports CORS, but we'll proxy it to be safe
+    const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
     if (!response.ok) return getFallbackData(ingr);
 
     const data = await response.json();
@@ -99,8 +100,8 @@ export const searchRecipes = async (params: {
       url.searchParams.append("diet", params.diet);
     }
 
-    // Using the CORS proxy to avoid ERR_FAILED/CORS issues
-    const response = await fetch(`${CORS_PROXY}${encodeURIComponent(url.toString())}`);
+    // Mandatory proxy for v1 Search API to bypass CORS
+    const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
     
     if (!response.ok) {
       console.error("Edamam API Error:", response.status);
