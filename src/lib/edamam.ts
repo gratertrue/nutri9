@@ -1,23 +1,16 @@
 "use client";
 
-import { getStoredData, STORAGE_KEYS } from './storage';
-
 // Edamam API Credentials
 const NUTRITION_APP_ID = "5006387d";
 const NUTRITION_APP_KEY = "a0b84fa17a95362c2fb8084d5161a5e4";
 const RECIPE_APP_ID = "23cc0b56"; 
 const RECIPE_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 
-// Using a more permissive proxy
+/**
+ * Using AllOrigins 'raw' endpoint. 
+ * To avoid CORS preflight (OPTIONS) requests, we MUST NOT send custom headers.
+ */
 const PROXY_URL = "https://api.allorigins.win/raw?url=";
-
-const getHeaders = () => {
-  const profile = getStoredData(STORAGE_KEYS.USER_PROFILE, { email: 'user@example.com' });
-  // We only send the identification header to avoid triggering complex preflights
-  return {
-    'Edamam-Account-User': profile.email || 'anonymous-user'
-  };
-};
 
 /**
  * NutriIntel™ Local Intelligence Engine
@@ -26,15 +19,16 @@ const getHeaders = () => {
 const localIntelligence = (query: string) => {
   const q = query.toLowerCase();
   const isProtein = q.includes('chicken') || q.includes('beef') || q.includes('fish') || q.includes('salmon') || q.includes('egg');
-  const isVeggie = q.includes('salad') || q.includes('apple') || q.includes('broccoli') || q.includes('spinach');
+  const isVeggie = q.includes('salad') || q.includes('apple') || q.includes('broccoli') || q.includes('spinach') || q.includes('kale');
+  const isGrain = q.includes('rice') || q.includes('oats') || q.includes('bread') || q.includes('pasta') || q.includes('quinoa');
   
   return {
-    calories: isProtein ? 250 : isVeggie ? 95 : 150,
+    calories: isProtein ? 250 : isVeggie ? 95 : isGrain ? 320 : 150,
     totalNutrients: {
-      PROCNT: { quantity: isProtein ? 30 : 2, unit: 'g' },
-      CHOCDF: { quantity: isVeggie ? 25 : 15, unit: 'g' },
+      PROCNT: { quantity: isProtein ? 30 : isGrain ? 8 : 2, unit: 'g' },
+      CHOCDF: { quantity: isVeggie ? 25 : isGrain ? 65 : 15, unit: 'g' },
       FAT: { quantity: isProtein ? 12 : 0.5, unit: 'g' },
-      FIBTG: { quantity: isVeggie ? 5 : 1, unit: 'g' },
+      FIBTG: { quantity: isVeggie ? 5 : isGrain ? 4 : 1, unit: 'g' },
       SUGAR: { quantity: isVeggie ? 15 : 2, unit: 'g' },
       NA: { quantity: 150, unit: 'mg' },
       FASAT: { quantity: 2, unit: 'g' }
@@ -51,13 +45,13 @@ export const analyzeNutrition = async (ingr: string) => {
     url.searchParams.append("app_key", NUTRITION_APP_KEY);
     url.searchParams.append("ingr", ingr);
 
-    const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`, {
-      method: 'GET',
-      headers: getHeaders()
-    });
+    // We do NOT pass any custom headers here to keep the request "Simple"
+    const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
     
-    if (!response.ok) throw new Error("API Blocked");
+    if (!response.ok) throw new Error("Proxy/API Error");
     const data = await response.json();
+    
+    if (!data.calories && data.calories !== 0) throw new Error("Invalid Data");
     return { ...data, source: 'api' };
   } catch (error) {
     console.warn("CORS/API Error, switching to NutriIntel™ Local Engine");
@@ -119,10 +113,8 @@ export const searchRecipes = async (query: string, health: string[] = []) => {
       url.searchParams.append("health", formatted);
     });
 
-    const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`, {
-      method: 'GET',
-      headers: getHeaders()
-    });
+    // No custom headers to avoid preflight
+    const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
     
     if (!response.ok) return null;
     return await response.json();
