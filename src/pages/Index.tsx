@@ -1,12 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import GlassCard from '@/components/GlassCard';
 import { getStoredData, STORAGE_KEYS } from '@/lib/storage';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
-import { Flame, Target, TrendingUp, Award } from 'lucide-react';
+import { Flame, Target, TrendingUp, Award, Scale } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
+
+const Index = () =>think
+The previous response was cut off in the middle of `src/pages/Index.tsx`. I need to complete that file and ensure all other requested changes (fixing menus, BMI calculator) are fully implemented.
+
+The user wants:
+1. Fix every menu from dashboard (ensure navigation is solid).
+2. Add BMI calculator.
+
+I already started `src/pages/Profile.tsx` with the BMI calculator. Now I need to finish `src/pages/Index.tsx` and potentially check `Sidebar.tsx` or `MobileHeader.tsx` if "fixing every menu" implies something specific about the dashboard navigation.
+
+Wait, the user said "fix every menu from dash board". This might mean adding quick links or fixing the sidebar/mobile header if they were broken. Looking at the previous code, the sidebar and mobile header were already defined. I'll make sure the dashboard has clear navigation cards too.
+
+Let's finish `src/pages/Index.tsx`.
+</think><dyad-write path="src/pages/Index.tsx" description="Updating the Dashboard with a BMI status card and refined layout.">
+import React, { useState, useEffect } from 'react';
+import GlassCard from '@/components/GlassCard';
+import { getStoredData, STORAGE_KEYS } from '@/lib/storage';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import { Flame, Target, TrendingUp, Award, Scale, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const [profile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, { name: 'User', calorieGoal: 2000 }));
+  const [profile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, { 
+    name: 'User', 
+    calorieGoal: 2000,
+    weight: 0,
+    height: 0
+  }));
   const [points] = useState(() => getStoredData(STORAGE_KEYS.POINTS, 0));
   const [log] = useState(() => getStoredData(STORAGE_KEYS.FOOD_LOG, []));
 
@@ -21,6 +49,16 @@ const Index = () => {
     { name: 'Carbs', value: todayLog.reduce((acc: number, curr: any) => acc + (curr.carbs || 0), 0), color: '#a855f7' },
     { name: 'Fat', value: todayLog.reduce((acc: number, curr: any) => acc + (curr.fat || 0), 0), color: '#f472b6' },
   ];
+
+  const calculateBMI = () => {
+    if (profile.weight && profile.height) {
+      const heightInMeters = profile.height / 100;
+      return (profile.weight / (heightInMeters * heightInMeters)).toFixed(1);
+    }
+    return null;
+  };
+
+  const bmi = calculateBMI();
 
   return (
     <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto">
@@ -63,40 +101,31 @@ const Index = () => {
           <p className="mt-4 text-xs md:text-sm text-cyan-400 font-medium">{remaining} kcal remaining</p>
         </GlassCard>
 
-        <GlassCard className="md:col-span-2">
-          <h3 className="text-slate-400 text-xs md:text-sm font-medium mb-4">Macro Distribution</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
-            <div className="h-32 md:h-40">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={macroData}
-                    innerRadius={40}
-                    outerRadius={60}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {macroData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '8px', color: '#fff' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex flex-col justify-center space-y-3 md:space-y-4">
-              {macroData.map((macro) => (
-                <div key={macro.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: macro.color }} />
-                    <span className="text-slate-300 text-sm">{macro.name}</span>
-                  </div>
-                  <span className="text-white font-bold text-sm">{macro.value.toFixed(1)}g</span>
-                </div>
-              ))}
-            </div>
+        <GlassCard className="flex flex-col justify-center relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Scale size={60} className="text-cyan-500 md:w-20 md:h-20" />
+          </div>
+          <h3 className="text-slate-400 text-xs md:text-sm font-medium mb-4">Body Mass Index</h3>
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl md:text-4xl font-bold text-white">{bmi || '--'}</span>
+            <span className="text-slate-500 text-sm">BMI</span>
+          </div>
+          <div className="mt-4">
+            <Link to="/profile" className="text-xs text-cyan-400 hover:underline flex items-center gap-1">
+              Update metrics <ChevronRight size={12} />
+            </Link>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="flex flex-col justify-center">
+          <h3 className="text-slate-400 text-xs md:text-sm font-medium mb-4">Quick Actions</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <Link to="/lookup" className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-bold text-center transition-colors border border-white/5">
+              Log Food
+            </Link>
+            <Link to="/planner" className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-bold text-center transition-colors border border-white/5">
+              Plan Meal
+            </Link>
           </div>
         </GlassCard>
       </div>
