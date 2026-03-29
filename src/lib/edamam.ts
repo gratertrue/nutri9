@@ -8,13 +8,13 @@ const NUTRITION_APP_KEY = "a0b84fa17a95362c2fb8084d5161a5e4";
 const RECIPE_APP_ID = "23cc0b56"; 
 const RECIPE_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 
-// Using a more reliable proxy for GET requests
-const PROXY_URL = "https://api.codetabs.com/v1/proxy?quest=";
+// Using a more robust proxy that handles preflight better
+const PROXY_URL = "https://corsproxy.io/?";
 
 const getHeaders = () => {
   const profile = getStoredData(STORAGE_KEYS.USER_PROFILE, { email: 'user@example.com' });
+  // We remove 'Content-Type' for GET requests to keep them "simple" and avoid some CORS preflight issues
   return {
-    'Content-Type': 'application/json',
     'Edamam-Account-User': profile.email || 'anonymous-user'
   };
 };
@@ -27,14 +27,17 @@ export const analyzeNutrition = async (ingr: string) => {
     url.searchParams.append("ingr", ingr);
 
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`, {
+      method: 'GET',
       headers: getHeaders()
     });
+    
     if (!response.ok) throw new Error("API Error");
     const data = await response.json();
     
     if (!data.calories || data.calories === 0) throw new Error("Empty API result");
     return { ...data, source: 'api' };
   } catch (error) {
+    console.error("Nutrition Analysis Error:", error);
     return null;
   }
 };
@@ -64,7 +67,7 @@ export const getWeeklyMealPlan = async (userId: string, params: any) => {
       return plan;
     }
   } catch (e) {
-    console.warn("Recipe Search fallback failed...");
+    console.warn("Recipe Search failed, using fallback plan...");
   }
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -94,11 +97,14 @@ export const searchRecipes = async (query: string, health: string[] = []) => {
     });
 
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`, {
+      method: 'GET',
       headers: getHeaders()
     });
+    
     if (!response.ok) return null;
     return await response.json();
   } catch (error) {
+    console.error("Recipe Search Error:", error);
     return null;
   }
 };
