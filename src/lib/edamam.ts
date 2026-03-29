@@ -67,24 +67,38 @@ const getFallbackData = (ingr: string) => {
   return null;
 };
 
-export const searchRecipes = async (query: string, health?: string[], mealType?: string) => {
+export const searchRecipes = async (params: {
+  query: string;
+  health?: string[];
+  mealType?: string;
+  calories?: string;
+  diet?: string;
+}) => {
   try {
     const url = new URL("https://api.edamam.com/search");
-    url.searchParams.append("q", query);
+    url.searchParams.append("q", params.query);
     url.searchParams.append("app_id", RECIPE_APP_ID);
     url.searchParams.append("app_key", RECIPE_APP_KEY);
     url.searchParams.append("from", "0");
-    url.searchParams.append("to", "12");
+    url.searchParams.append("to", "20");
     
-    if (health && health.length > 0) {
-      health.forEach(h => {
+    if (params.health && params.health.length > 0) {
+      params.health.forEach(h => {
         const label = h.toLowerCase().replace(/\s+/g, '-');
         url.searchParams.append("health", label);
       });
     }
 
-    if (mealType) {
-      url.searchParams.append("mealType", mealType);
+    if (params.mealType) {
+      url.searchParams.append("mealType", params.mealType);
+    }
+
+    if (params.calories) {
+      url.searchParams.append("calories", params.calories);
+    }
+
+    if (params.diet) {
+      url.searchParams.append("diet", params.diet);
     }
 
     const response = await fetch(url.toString());
@@ -95,7 +109,33 @@ export const searchRecipes = async (query: string, health?: string[], mealType?:
   }
 };
 
-export const getRecommendations = async (healthLabels: string[], mealType?: string) => {
-  const query = healthLabels.length > 0 ? healthLabels[0] : "healthy";
-  return searchRecipes(query, healthLabels, mealType);
+export const getRecommendations = async (params: {
+  healthLabels: string[];
+  mealType?: string;
+  calories?: string;
+  diet?: string;
+}) => {
+  // Create a more diverse query based on meal type and health labels
+  const baseQueries: Record<string, string[]> = {
+    breakfast: ['oats', 'eggs', 'smoothie', 'pancakes', 'yogurt'],
+    lunch: ['salad', 'sandwich', 'bowl', 'soup', 'wrap'],
+    dinner: ['roast', 'pasta', 'stir fry', 'grill', 'stew'],
+    snack: ['nuts', 'fruit', 'bar', 'dip', 'crackers']
+  };
+
+  const mealTypeKey = params.mealType?.toLowerCase() || 'lunch';
+  const queries = baseQueries[mealTypeKey] || baseQueries.lunch;
+  const randomQuery = queries[Math.floor(Math.random() * queries.length)];
+  
+  const finalQuery = params.healthLabels.length > 0 
+    ? `${randomQuery} ${params.healthLabels[0]}`
+    : randomQuery;
+
+  return searchRecipes({
+    query: finalQuery,
+    health: params.healthLabels,
+    mealType: params.mealType,
+    calories: params.calories,
+    diet: params.diet
+  });
 };
