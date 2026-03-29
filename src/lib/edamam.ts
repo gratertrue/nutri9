@@ -6,8 +6,8 @@ const FOOD_APP_KEY = "4ef9911c1a046060203091660977ee0d";
 const RECIPE_APP_ID = "23cc0b56"; 
 const RECIPE_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 
-// Using AllOrigins JSON wrapper for maximum CORS compatibility
-const PROXY_URL = "https://api.allorigins.win/get?url=";
+// Using corsproxy.io as a more permissive CORS proxy
+const PROXY_URL = "https://corsproxy.io/?";
 
 export const analyzeNutrition = async (ingr: string) => {
   try {
@@ -19,9 +19,7 @@ export const analyzeNutrition = async (ingr: string) => {
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
     if (!response.ok) return getFallbackData(ingr);
 
-    const jsonWrapper = await response.json();
-    const data = JSON.parse(jsonWrapper.contents);
-
+    const data = await response.json();
     if (!data || !data.hints || data.hints.length === 0) return getFallbackData(ingr);
 
     const food = data.hints[0].food;
@@ -55,8 +53,7 @@ const getFallbackData = (ingr: string) => {
     salmon: { calories: 208, totalNutrients: { PROCNT: { quantity: 20 }, CHOCDF: { quantity: 0 }, FAT: { quantity: 13 } } }
   };
 
-  const match = Object.keys(mocks).find(key => lower.includes(key));
-  if (match) {
+  const match = Object.keys(mocks).find(key => lower.includes(key));if (match) {
     const data = mocks[match];
     return {
       ...data,
@@ -101,7 +98,6 @@ export const searchRecipes = async (params: {
       url.searchParams.append("diet", params.diet);
     }
 
-    // Using the JSON wrapper proxy to bypass CORS reliably
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
     
     if (!response.ok) {
@@ -109,9 +105,7 @@ export const searchRecipes = async (params: {
       return null;
     }
     
-    const jsonWrapper = await response.json();
-    // The actual API response is inside the 'contents' property as a string
-    return JSON.parse(jsonWrapper.contents);
+    return await response.json();
   } catch (error) {
     console.error("Fetch Error:", error);
     return null;
