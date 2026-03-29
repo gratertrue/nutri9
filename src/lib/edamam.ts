@@ -9,6 +9,23 @@ const RECIPE_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 // Using CodeTabs proxy
 const PROXY_URL = "https://api.codetabs.com/v1/proxy?quest=";
 
+/**
+ * Maps UI labels to Edamam API specific health labels
+ */
+const mapHealthLabel = (label: string): string => {
+  const map: Record<string, string> = {
+    'vegetarian': 'vegetarian',
+    'vegan': 'vegan',
+    'paleo': 'paleo',
+    'gluten-free': 'gluten-free',
+    'keto': 'keto-friendly',
+    'dairy-free': 'dairy-free',
+    'low-sugar': 'low-sugar'
+  };
+  const normalized = label.toLowerCase().trim();
+  return map[normalized] || normalized;
+};
+
 export const analyzeNutrition = async (ingr: string) => {
   try {
     const url = new URL("https://api.edamam.com/api/food-database/v2/parser");
@@ -92,9 +109,8 @@ export const searchRecipes = async (params: {
 
     if (params.health && params.health.length > 0) {
       params.health.forEach(h => {
-        // Map common labels to Edamam expected format
-        const label = h.toLowerCase().replace(/\s+/g, '-');
-        url.searchParams.append("health", label);
+        const mapped = mapHealthLabel(h);
+        url.searchParams.append("health", mapped);
       });
     }
 
@@ -113,6 +129,7 @@ export const searchRecipes = async (params: {
     const data = await response.json();
     return data;
   } catch (error) {
+    console.error("Recipe search failed", error);
     return null;
   }
 };
@@ -124,24 +141,42 @@ export const getRecommendations = async (params: {
   diet?: string;
 }) => {
   const baseQueries: Record<string, string[]> = {
-    breakfast: ['oats', 'eggs', 'smoothie', 'pancakes'],
-    lunch: ['salad', 'sandwich', 'bowl', 'wrap'],
-    dinner: ['chicken', 'pasta', 'salmon', 'steak'],
-    snack: ['nuts', 'fruit', 'yogurt', 'hummus']
+    breakfast: ['oats', 'eggs', 'smoothie', 'pancakes', 'toast'],
+    lunch: ['salad', 'sandwich', 'bowl', 'wrap', 'soup'],
+    dinner: ['chicken', 'pasta', 'salmon', 'steak', 'stir fry'],
+    snack: ['nuts', 'fruit', 'yogurt', 'hummus', 'cheese']
   };
 
   const mealTypeKey = params.mealType?.toLowerCase() || 'lunch';
   const queries = baseQueries[mealTypeKey] || baseQueries.lunch;
   const randomQuery = queries[Math.floor(Math.random() * queries.length)];
   
-  // Keep the query simple to avoid empty results
-  const finalQuery = randomQuery;
-
-  return searchRecipes({
-    query: finalQuery,
+  // Try strict search first
+  let results = await searchRecipes({
+    query: randomQuery,
     health: params.healthLabels,
     calories: params.calories,
     diet: params.diet,
     mealType: params.mealType
   });
+
+  // If no results, try a broader search by removing the calorie constraint
+  if (!results || !results.hits || results.hits.length === 0) {
+    results = await searchRecipes({
+      query: randomQuery,
+      health: params.healthLabels,
+      diet: params.diet,
+      mealType: params.mealType
+    });
+  }
+
+  // If still no results, try the most basic search with just query and mealType
+  if (!results || !results.hits || results.hits.length === 0) {
+    results = await searchRecipes({
+      query: randomQuery,
+      mealType: params.mealType
+    });
+  }
+
+  return results;
 };
