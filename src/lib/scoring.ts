@@ -37,7 +37,7 @@ export const detectUPF = (ingredients: string[] = []) => {
     'artificial sweetener', 'bha', 'bht', 'sodium nitrite', 
     'hydrogenated oil', 'hfcs', 'maltodextrin', 'corn syrup',
     'aspartame', 'sucralose', 'saccharin', 'acesulfame', 'monosodium glutamate',
-    'carrageenan', 'guar gum', 'xanthan gum', 'artificial flavor', 'modified starch'
+    'carrageenan', 'guar gum', 'xanthan gum', 'artificial flavor'
   ];
   
   const detected = ingredients.filter(ing => 
@@ -52,15 +52,15 @@ export const detectUPF = (ingredients: string[] = []) => {
 
 export const getAllergenAlerts = (ingredients: string[] = []) => {
   const allergens = {
-    Milk: ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'lactose', 'whey', 'casein'],
-    Eggs: ['egg', 'albumin', 'mayonnaise'],
-    Fish: ['fish', 'salmon', 'tuna', 'cod', 'anchovy'],
-    Shellfish: ['shrimp', 'crab', 'lobster', 'mussel', 'prawn'],
-    TreeNuts: ['almond', 'walnut', 'cashew', 'pistachio', 'pecan', 'hazelnut'],
-    Peanuts: ['peanut', 'arachis'],
-    Wheat: ['wheat', 'flour', 'gluten', 'semolina', 'spelt'],
-    Soy: ['soy', 'tofu', 'edamame', 'lecithin'],
-    Sesame: ['sesame', 'tahini']
+    Milk: ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'lactose'],
+    Eggs: ['egg'],
+    Fish: ['fish', 'salmon', 'tuna', 'cod'],
+    Shellfish: ['shrimp', 'crab', 'lobster', 'mussel'],
+    TreeNuts: ['almond', 'walnut', 'cashew', 'pistachio'],
+    Peanuts: ['peanut'],
+    Wheat: ['wheat', 'flour', 'gluten'],
+    Soy: ['soy', 'tofu', 'edamame'],
+    Sesame: ['sesame']
   };
 
   const alerts: string[] = [];
@@ -74,7 +74,7 @@ export const getAllergenAlerts = (ingredients: string[] = []) => {
 };
 
 export const analyzeHealthConditions = (data: any, conditions: string[]) => {
-  const alerts: { type: 'warning' | 'good' | 'info', message: string }[] = [];
+  const alerts: { type: 'warning' | 'good', message: string }[] = [];
   const nutrients = data.totalNutrients || {};
   
   const sugar = nutrients.SUGAR?.quantity || 0;
@@ -85,17 +85,13 @@ export const analyzeHealthConditions = (data: any, conditions: string[]) => {
   const transFat = nutrients.FATRN?.quantity || 0;
   const phosphorus = nutrients.P?.quantity || 0;
   const potassium = nutrients.K?.quantity || 0;
-  const fat = nutrients.FAT?.quantity || 0;
-  const folate = nutrients.FOLDFE?.quantity || 0;
-  const iron = nutrients.FE?.quantity || 0;
-  const caffeine = nutrients.CAFFN?.quantity || 0;
 
   if (conditions.includes('Diabetes')) {
     if (sugar > 15 || carbs > 30) alerts.push({ type: 'warning', message: 'High sugar/carbs - Caution for Diabetes' });
     else if (sugar < 5 && fiber > 3) alerts.push({ type: 'good', message: 'Diabetes friendly: Low sugar, high fiber' });
   }
 
-  if (conditions.includes('Heart Condition') || conditions.includes('Hypertension')) {
+  if (conditions.includes('Heart Disease')) {
     if (satFat > 5 || sodium > 400 || transFat > 0) alerts.push({ type: 'warning', message: 'High sodium/sat fat - Caution for Heart Health' });
     else if (sodium < 140 && satFat < 2) alerts.push({ type: 'good', message: 'Heart healthy: Low sodium and sat fat' });
   }
@@ -104,23 +100,12 @@ export const analyzeHealthConditions = (data: any, conditions: string[]) => {
     if (phosphorus > 200 || potassium > 250 || sodium > 200) alerts.push({ type: 'warning', message: 'High phosphorus/potassium/sodium - Caution for Kidney Health' });
   }
 
-  if (conditions.includes('Stomach Sensitivity') || conditions.includes('GI issues')) {
-    if (fat > 15) alerts.push({ type: 'warning', message: 'High fat content may trigger GI issues/GERD' });
-    if (caffeine > 50) alerts.push({ type: 'warning', message: 'Caffeine detected - potential GERD trigger' });
-  }
-
-  if (conditions.includes('Pregnancy')) {
-    if (caffeine > 200) alerts.push({ type: 'warning', message: 'High caffeine (>200mg) - Limit during pregnancy' });
-    if (folate > 100) alerts.push({ type: 'good', message: 'Excellent source of Folate for pregnancy' });
-    if (iron > 5) alerts.push({ type: 'good', message: 'Good source of Iron for pregnancy' });
-  }
-
   return alerts;
 };
 
 export const getEnvironmentalImpact = (foodName: string) => {
   const lower = foodName.toLowerCase();
   if (lower.includes('beef') || lower.includes('lamb')) return 'High';
-  if (lower.includes('chicken') || lower.includes('pork') || lower.includes('cheese') || lower.includes('dairy')) return 'Medium';
+  if (lower.includes('chicken') || lower.includes('pork') || lower.includes('cheese')) return 'Medium';
   return 'Low';
 };
