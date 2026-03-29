@@ -1,146 +1,214 @@
-"use client";
-
 import React, { useState, useEffect } from 'react';
 import GlassCard from '@/components/GlassCard';
 import { getStoredData, setStoredData, STORAGE_KEYS } from '@/lib/storage';
-import { User, Activity, Heart, Scale, History, TrendingUp } from 'lucide-react';
+import { User, Activity, Heart, Scale } from 'lucide-react';
 import { showSuccess } from '@/utils/toast';
 import { cn } from '@/lib/utils';
 
 const Profile = () => {
   const [profile, setProfile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, {
-    name: '', age: 25, weight: 70, height: 175, gender: 'male',
-    activityLevel: 'moderate', calorieGoal: 2000,
-    healthConditions: [], dietaryRestrictions: []
+    name: '',
+    age: 25,
+    weight: 70,
+    height: 175,
+    gender: 'male',
+    activityLevel: 'moderate',
+    calorieGoal: 2000,
+    healthConditions: [],
+    dietaryRestrictions: []
   }));
 
-  const [bmiHistory, setBmiHistory] = useState(() => getStoredData<any[]>(STORAGE_KEYS.BMI_HISTORY, []));
+  const [bmi, setBmi] = useState<number | null>(null);
+  const [bmiCategory, setBmiCategory] = useState<string>('');
 
-  const calculateBMI = (w: number, h: number) => {
-    const hM = h / 100;
-    return (w / (hM * hM)).toFixed(1);
-  };
+  useEffect(() => {
+    if (profile.weight && profile.height) {
+      const heightInMeters = profile.height / 100;
+      const calculatedBmi = profile.weight / (heightInMeters * heightInMeters);
+      setBmi(calculatedBmi);
+
+      if (calculatedBmi < 18.5) setBmiCategory('Underweight');
+      else if (calculatedBmi < 25) setBmiCategory('Healthy');
+      else if (calculatedBmi < 30) setBmiCategory('Overweight');
+      else setBmiCategory('Obese');
+    }
+  }, [profile.weight, profile.height]);
+
+  const conditions = ['Diabetes', 'Heart Condition', 'Hypertension', 'Stomach Sensitivity'];
+  const diets = ['Vegetarian', 'Vegan', 'Paleo', 'Gluten-Free', 'Keto'];
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    const currentBmi = calculateBMI(profile.weight, profile.height);
-    const newHistory = [{ date: new Date().toISOString(), bmi: currentBmi }, ...bmiHistory].slice(0, 10);
-    
     setStoredData(STORAGE_KEYS.USER_PROFILE, profile);
-    setStoredData(STORAGE_KEYS.BMI_HISTORY, newHistory);
-    setBmiHistory(newHistory);
-    showSuccess("Profile and BMI history updated!");
+    showSuccess("Profile updated successfully!");
   };
 
   const toggleItem = (list: string[], item: string, key: string) => {
-    const newList = list.includes(item) ? list.filter(i => i !== item) : [...list, item];
+    const newList = list.includes(item) 
+      ? list.filter(i => i !== item) 
+      : [...list, item];
     setProfile({ ...profile, [key]: newList });
   };
 
-  const conditions = ['Diabetes', 'Heart Disease', 'Kidney Disease', 'GI issues', 'Celiac', 'Lactose intolerance', 'Pregnancy'];
-  const diets = ['Vegetarian', 'Vegan', 'Paleo', 'Gluten-Free', 'Keto', 'Low-Sugar', 'Low-Sodium'];
-
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 md:space-y-8">
       <header>
-        <h2 className="text-3xl font-bold text-white mb-2">User Intelligence Profile</h2>
-        <p className="text-slate-400">Configure your biometric data and health preferences.</p>
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">Biometric Profile</h2>
+        <p className="text-slate-400 text-sm md:text-base">Personalize your nutrition intelligence engine.</p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <form onSubmit={handleSave} className="space-y-6">
-            <GlassCard>
-              <h3 className="text-white font-bold mb-6 flex items-center gap-2">
-                <User size={18} className="text-cyan-400" />
-                Biometrics
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+        <GlassCard className="md:col-span-2">
+          <h3 className="text-white font-bold mb-4 md:mb-6 flex items-center gap-2 text-sm md:text-base">
+            <User size={18} className="text-cyan-400" />
+            Basic Information
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="text-[10px] text-slate-500 uppercase mb-1 block">Full Name</label>
+              <input 
+                type="text" 
+                value={profile.name}
+                onChange={e => setProfile({...profile, name: e.target.value})}
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
+              <div>
+                <label className="text-[10px] text-slate-500 uppercase mb-1 block">Age</label>
+                <input 
+                  type="number" 
+                  value={profile.age}
+                  onChange={e => setProfile({...profile, age: parseInt(e.target.value)})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 uppercase mb-1 block">Gender</label>
+                <select 
+                  value={profile.gender}
+                  onChange={e => setProfile({...profile, gender: e.target.value})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none"
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+
+        <GlassCard className="flex flex-col items-center justify-center text-center bg-gradient-to-br from-cyan-500/10 to-purple-500/10 border-cyan-500/20">
+          <Scale size={32} className="text-cyan-400 mb-3" />
+          <h4 className="text-slate-400 text-xs uppercase font-bold tracking-widest mb-1">Your BMI</h4>
+          <div className="text-4xl font-black text-white mb-1">{bmi?.toFixed(1) || '--'}</div>
+          <div className={cn(
+            "text-xs font-bold px-3 py-1 rounded-full",
+            bmiCategory === 'Healthy' ? "bg-green-500/20 text-green-400" : "bg-orange-500/20 text-orange-400"
+          )}>
+            {bmiCategory || 'Enter metrics'}
+          </div>
+        </GlassCard>
+      </div>
+
+      <form onSubmit={handleSave} className="space-y-4 md:space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <GlassCard>
+            <h3 className="text-white font-bold mb-4 md:mb-6 flex items-center gap-2 text-sm md:text-base">
+              <Activity size={18} className="text-purple-400" />
+              Body Metrics
+            </h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div>
-                  <label className="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Weight (kg)</label>
-                  <input type="number" value={profile.weight} onChange={e => setProfile({...profile, weight: Number(e.target.value)})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white" />
+                  <label className="text-[10px] text-slate-500 uppercase mb-1 block">Weight (kg)</label>
+                  <input 
+                    type="number" 
+                    value={profile.weight}
+                    onChange={e => setProfile({...profile, weight: parseInt(e.target.value)})}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none"
+                  />
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Height (cm)</label>
-                  <input type="number" value={profile.height} onChange={e => setProfile({...profile, height: Number(e.target.value)})} className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white" />
+                  <label className="text-[10px] text-slate-500 uppercase mb-1 block">Height (cm)</label>
+                  <input 
+                    type="number" 
+                    value={profile.height}
+                    onChange={e => setProfile({...profile, height: parseInt(e.target.value)})}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none"
+                  />
                 </div>
               </div>
-            </GlassCard>
-
-            <GlassCard>
-              <h3 className="text-white font-bold mb-6 flex items-center gap-2">
-                <Heart size={18} className="text-pink-400" />
-                Health Conditions
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {conditions.map(c => (
-                  <button
-                    key={c} type="button"
-                    onClick={() => toggleItem(profile.healthConditions, c, 'healthConditions')}
-                    className={cn(
-                      "px-4 py-2 rounded-xl text-xs font-bold transition-all",
-                      profile.healthConditions.includes(c) ? "bg-cyan-500 text-white" : "bg-white/5 text-slate-400 border border-white/10"
-                    )}
-                  >
-                    {c}
-                  </button>
-                ))}
+              <div>
+                <label className="text-[10px] text-slate-500 uppercase mb-1 block">Daily Calorie Goal</label>
+                <input 
+                  type="number" 
+                  value={profile.calorieGoal}
+                  onChange={e => setProfile({...profile, calorieGoal: parseInt(e.target.value)})}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none"
+                />
               </div>
-            </GlassCard>
-
-            <GlassCard>
-              <h3 className="text-white font-bold mb-6 flex items-center gap-2">
-                <Activity size={18} className="text-purple-400" />
-                Dietary Preferences
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {diets.map(d => (
-                  <button
-                    key={d} type="button"
-                    onClick={() => toggleItem(profile.dietaryRestrictions, d, 'dietaryRestrictions')}
-                    className={cn(
-                      "px-4 py-2 rounded-xl text-xs font-bold transition-all",
-                      profile.dietaryRestrictions.includes(d) ? "bg-purple-500 text-white" : "bg-white/5 text-slate-400 border border-white/10"
-                    )}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </GlassCard>
-
-            <button type="submit" className="w-full bg-cyan-500 hover:bg-cyan-400 text-white py-4 rounded-2xl font-bold shadow-lg shadow-cyan-500/20 transition-all">
-              Save Profile & Update BMI
-            </button>
-          </form>
-        </div>
-
-        <div className="space-y-6">
-          <GlassCard className="text-center py-8 bg-gradient-to-br from-cyan-500/10 to-purple-500/10">
-            <Scale size={40} className="text-cyan-400 mx-auto mb-4" />
-            <div className="text-xs text-slate-500 uppercase font-bold mb-1">Current BMI</div>
-            <div className="text-5xl font-black text-white mb-2">{calculateBMI(profile.weight, profile.height)}</div>
-            <div className="text-xs font-bold text-cyan-400">Healthy Range: 18.5 - 24.9</div>
+            </div>
           </GlassCard>
 
           <GlassCard>
-            <h3 className="text-white font-bold mb-6 flex items-center gap-2">
-              <History size={18} className="text-slate-400" />
-              BMI History
+            <h3 className="text-white font-bold mb-4 md:mb-6 flex items-center gap-2 text-sm md:text-base">
+              <Heart size={18} className="text-pink-400" />
+              Health & Diet
             </h3>
-            <div className="space-y-4">
-              {bmiHistory.length > 0 ? bmiHistory.map((entry, i) => (
-                <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-xl">
-                  <div className="text-xs text-slate-400">{new Date(entry.date).toLocaleDateString()}</div>
-                  <div className="font-bold text-white">{entry.bmi}</div>
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] text-slate-500 uppercase mb-3 block">Health Conditions</label>
+                <div className="flex flex-wrap gap-2">
+                  {conditions.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => toggleItem(profile.healthConditions, c, 'healthConditions')}
+                      className={cn(
+                        "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[11px] md:text-sm transition-all",
+                        profile.healthConditions.includes(c) 
+                          ? "bg-cyan-500 text-white" 
+                          : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10"
+                      )}
+                    >
+                      {c}
+                    </button>
+                  ))}
                 </div>
-              )) : (
-                <div className="text-center py-4 text-slate-500 text-xs italic">No history yet.</div>
-              )}
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-500 uppercase mb-3 block">Dietary Restrictions</label>
+                <div className="flex flex-wrap gap-2">
+                  {diets.map(d => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleItem(profile.dietaryRestrictions, d, 'dietaryRestrictions')}
+                      className={cn(
+                        "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[11px] md:text-sm transition-all",
+                        profile.dietaryRestrictions.includes(d) 
+                          ? "bg-purple-500 text-white" 
+                          : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10"
+                      )}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </GlassCard>
         </div>
-      </div>
+
+        <button 
+          type="submit"
+          className="w-full bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-bold py-3.5 md:py-4 rounded-2xl text-sm md:text-base shadow-lg shadow-cyan-500/20 hover:scale-[1.01] active:scale-[0.99] transition-transform"
+        >
+          Save Profile & Recalculate Goals
+        </button>
+      </form>
     </div>
   );
 };
