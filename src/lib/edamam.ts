@@ -6,8 +6,8 @@ const FOOD_APP_KEY = "4ef9911c1a046060203091660977ee0d";
 const RECIPE_APP_ID = "23cc0b56"; 
 const RECIPE_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 
-// Using corsproxy.io as a more permissive CORS proxy
-const PROXY_URL = "https://corsproxy.io/?";
+// Using CodeTabs proxy which is often more reliable for these APIs
+const PROXY_URL = "https://api.codetabs.com/v1/proxy?quest=";
 
 export const analyzeNutrition = async (ingr: string) => {
   try {
@@ -53,7 +53,8 @@ const getFallbackData = (ingr: string) => {
     salmon: { calories: 208, totalNutrients: { PROCNT: { quantity: 20 }, CHOCDF: { quantity: 0 }, FAT: { quantity: 13 } } }
   };
 
-  const match = Object.keys(mocks).find(key => lower.includes(key));if (match) {
+  const match = Object.keys(mocks).find(key => lower.includes(key));
+  if (match) {
     const data = mocks[match];
     return {
       ...data,
@@ -77,12 +78,12 @@ export const searchRecipes = async (params: {
   diet?: string;
 }) => {
   try {
-    const url = new URL("https://api.edamam.com/search");
+    // Using v2 API which is the current standard and more likely to work with these keys
+    const url = new URL("https://api.edamam.com/api/recipes/v2");
+    url.searchParams.append("type", "public");
     url.searchParams.append("q", params.query);
     url.searchParams.append("app_id", RECIPE_APP_ID);
     url.searchParams.append("app_key", RECIPE_APP_KEY);
-    url.searchParams.append("from", "0");
-    url.searchParams.append("to", "12");
     
     if (params.health && params.health.length > 0) {
       params.health.forEach(h => {
@@ -96,6 +97,10 @@ export const searchRecipes = async (params: {
 
     if (params.diet) {
       url.searchParams.append("diet", params.diet);
+    }
+
+    if (params.mealType) {
+      url.searchParams.append("mealType", params.mealType);
     }
 
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
@@ -135,6 +140,7 @@ export const getRecommendations = async (params: {
     query: finalQuery,
     health: params.healthLabels,
     calories: params.calories,
-    diet: params.diet
+    diet: params.diet,
+    mealType: params.mealType
   });
 };
