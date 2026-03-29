@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useEffect } from 'react';
 import GlassCard from '@/components/GlassCard';
 import { getStoredData, setStoredData, STORAGE_KEYS } from '@/lib/storage';
@@ -9,21 +7,18 @@ import { cn } from '@/lib/utils';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Profile = () => {
-  const [profile, setProfile] = useState(() => {
-    const saved = getStoredData(STORAGE_KEYS.USER_PROFILE, {});
-    return {
-      name: saved.name || '',
-      email: saved.email || '',
-      age: saved.age || 25,
-      weight: saved.weight || 70,
-      height: saved.height || 175,
-      gender: saved.gender || 'male',
-      activityLevel: saved.activityLevel || 'moderate',
-      calorieGoal: saved.calorieGoal || 2000,
-      healthConditions: saved.healthConditions || [],
-      dietaryRestrictions: saved.dietaryRestrictions || []
-    };
-  });
+  const [profile, setProfile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, {
+    name: '',
+    email: '',
+    age: 25,
+    weight: 70,
+    height: 175,
+    gender: 'male',
+    activityLevel: 'moderate',
+    calorieGoal: 2000,
+    healthConditions: [],
+    dietaryRestrictions: []
+  }));
 
   const [weightHistory, setWeightHistory] = useState(() => getStoredData(STORAGE_KEYS.WEIGHT_HISTORY, [
     { date: '2024-01-01', weight: 72 },
@@ -51,6 +46,7 @@ const Profile = () => {
     e.preventDefault();
     setStoredData(STORAGE_KEYS.USER_PROFILE, profile);
     
+    // Update weight history if weight changed
     const today = new Date().toISOString().split('T')[0];
     const lastEntry = weightHistory[weightHistory.length - 1];
     if (!lastEntry || lastEntry.weight !== profile.weight) {
@@ -62,11 +58,10 @@ const Profile = () => {
     showSuccess("Profile updated successfully!");
   };
 
-  const toggleItem = (list: string[] | undefined, item: string, key: string) => {
-    const currentList = list || [];
-    const newList = currentList.includes(item) 
-      ? currentList.filter(i => i !== item) 
-      : [...currentList, item];
+  const toggleItem = (list: string[], item: string, key: string) => {
+    const newList = list.includes(item) 
+      ? list.filter(i => i !== item) 
+      : [...list, item];
     setProfile({ ...profile, [key]: newList });
   };
 
@@ -113,7 +108,7 @@ const Profile = () => {
                 <input 
                   type="number" 
                   value={profile.age}
-                  onChange={e => setProfile({...profile, age: parseInt(e.target.value) || 0})}
+                  onChange={e => setProfile({...profile, age: parseInt(e.target.value)})}
                   className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none"
                 />
               </div>
@@ -180,7 +175,7 @@ const Profile = () => {
                   <input 
                     type="number" 
                     value={profile.weight}
-                    onChange={e => setProfile({...profile, weight: parseInt(e.target.value) || 0})}
+                    onChange={e => setProfile({...profile, weight: parseInt(e.target.value)})}
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none"
                   />
                 </div>
@@ -189,7 +184,7 @@ const Profile = () => {
                   <input 
                     type="number" 
                     value={profile.height}
-                    onChange={e => setProfile({...profile, height: parseInt(e.target.value) || 0})}
+                    onChange={e => setProfile({...profile, height: parseInt(e.target.value)})}
                     className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none"
                   />
                 </div>
@@ -199,7 +194,7 @@ const Profile = () => {
                 <input 
                   type="number" 
                   value={profile.calorieGoal}
-                  onChange={e => setProfile({...profile, calorieGoal: parseInt(e.target.value) || 0})}
+                  onChange={e => setProfile({...profile, calorieGoal: parseInt(e.target.value)})}
                   className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 md:p-3 text-sm text-white focus:outline-none"
                 />
               </div>
@@ -222,7 +217,7 @@ const Profile = () => {
                       onClick={() => toggleItem(profile.healthConditions, c, 'healthConditions')}
                       className={cn(
                         "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[11px] md:text-sm transition-all",
-                        profile.healthConditions?.includes(c) 
+                        profile.healthConditions.includes(c) 
                           ? "bg-cyan-500 text-white" 
                           : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10"
                       )}
@@ -242,7 +237,7 @@ const Profile = () => {
                       onClick={() => toggleItem(profile.dietaryRestrictions, d, 'dietaryRestrictions')}
                       className={cn(
                         "px-3 py-1.5 md:px-4 md:py-2 rounded-full text-[11px] md:text-sm transition-all",
-                        profile.dietaryRestrictions?.includes(d) 
+                        profile.dietaryRestrictions.includes(d) 
                           ? "bg-purple-500 text-white" 
                           : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10"
                       )}
