@@ -23,7 +23,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner position="top-right" />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="flex flex-col md:flex-row min-h-screen bg-[#0F172A] text-slate-200 font-sans selection:bg-cyan-500/30">
           <MobileHeader />
           <Sidebar />
