@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import GlassCard from '@/components/GlassCard';
 import { getStoredData, STORAGE_KEYS, setStoredData, updatePoints } from '@/lib/storage';
-import { getRecommendations } from '@/lib/edamam';
+import { getRecommendations, searchRecipes } from '@/lib/edamam';
 import { 
   Sparkles, 
   RefreshCw, 
@@ -19,7 +19,8 @@ import {
   Filter,
   Zap,
   Leaf,
-  Target
+  Target,
+  Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { showSuccess, showError } from '@/utils/toast';
@@ -44,13 +45,14 @@ const MealPlanner = () => {
   const [activeMealType, setActiveMealType] = useState('lunch');
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [useCalorieRange, setUseCalorieRange] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [profile] = useState(() => getStoredData(STORAGE_KEYS.USER_PROFILE, { 
     dietaryRestrictions: [],
     calorieGoal: 2000 
   }));
 
-  const fetchMeals = async () => {
+  const fetchMeals = async (customQuery?: string) => {
     setLoading(true);
     try {
       let calorieRange = "";
@@ -63,12 +65,23 @@ const MealPlanner = () => {
 
       const selectedFilter = smartFilters.find(f => f.id === activeFilter);
 
-      const data = await getRecommendations({
-        healthLabels: profile.dietaryRestrictions || [],
-        mealType: activeMealType,
-        calories: calorieRange || undefined,
-        diet: selectedFilter?.diet
-      });
+      let data;
+      if (customQuery) {
+        data = await searchRecipes({
+          query: customQuery,
+          health: profile.dietaryRestrictions || [],
+          calories: calorieRange || undefined,
+          diet: selectedFilter?.diet,
+          mealType: activeMealType
+        });
+      } else {
+        data = await getRecommendations({
+          healthLabels: profile.dietaryRestrictions || [],
+          mealType: activeMealType,
+          calories: calorieRange || undefined,
+          diet: selectedFilter?.diet
+        });
+      }
 
       if (data && data.hits) {
         setRecommendations(data.hits);
@@ -85,8 +98,17 @@ const MealPlanner = () => {
   };
 
   useEffect(() => {
-    fetchMeals();
+    if (!searchQuery) {
+      fetchMeals();
+    }
   }, [activeMealType, activeFilter, useCalorieRange]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      fetchMeals(searchQuery);
+    }
+  };
 
   const addToLog = (recipe: any) => {
     const log = getStoredData(STORAGE_KEYS.FOOD_LOG, []);
@@ -116,14 +138,26 @@ const MealPlanner = () => {
           </h2>
           <p className="text-slate-400 text-sm md:text-base">Personalized recipes based on your dietary profile and goals.</p>
         </div>
-        <button 
-          onClick={fetchMeals}
-          disabled={loading}
-          className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl border border-white/10 transition-all disabled:opacity-50 text-sm"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          Refresh Plan
-        </button>
+        <div className="flex gap-3 w-full md:w-auto">
+          <form onSubmit={handleSearch} className="relative flex-1 md:w-64">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search recipes..."
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2 px-4 pl-10 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+          </form>
+          <button 
+            onClick={() => fetchMeals(searchQuery)}
+            disabled={loading}
+            className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white px-4 py-2 rounded-xl border border-white/10 transition-all disabled:opacity-50 text-sm"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

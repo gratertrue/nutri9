@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import GlassCard from '@/components/GlassCard';
+import WaterTracker from '@/components/WaterTracker';
 import { getStoredData, STORAGE_KEYS } from '@/lib/storage';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Flame, Target, TrendingUp, Award, Scale, ChevronRight } from 'lucide-react';
@@ -75,6 +76,8 @@ const Index = () => {
           <p className="mt-4 text-xs md:text-sm text-cyan-400 font-medium">{remaining} kcal remaining</p>
         </GlassCard>
 
+        <WaterTracker />
+
         <GlassCard className="flex flex-col justify-center relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Scale size={60} className="text-cyan-500 md:w-20 md:h-20" />
@@ -87,18 +90,6 @@ const Index = () => {
           <div className="mt-4">
             <Link to="/profile" className="text-xs text-cyan-400 hover:underline flex items-center gap-1">
               Update metrics <ChevronRight size={12} />
-            </Link>
-          </div>
-        </GlassCard>
-
-        <GlassCard className="flex flex-col justify-center">
-          <h3 className="text-slate-400 text-xs md:text-sm font-medium mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <Link to="/lookup" className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-bold text-center transition-colors border border-white/5">
-              Log Food
-            </Link>
-            <Link to="/planner" className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-bold text-center transition-colors border border-white/5">
-              Plan Meal
             </Link>
           </div>
         </GlassCard>
