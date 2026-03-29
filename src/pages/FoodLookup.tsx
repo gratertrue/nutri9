@@ -7,7 +7,7 @@ import { calculateAdvancedScore, analyzeHealthConditions, detectUPF, getEnvironm
 import { getStoredData, STORAGE_KEYS, setStoredData, updatePoints } from '@/lib/storage';
 import { 
   Search, Info, AlertTriangle, CheckCircle2, Plus, Loader2, 
-  Leaf, Scale, Zap, ShieldAlert, Clock, ArrowRightLeft, Database
+  Leaf, Scale, Zap, ShieldAlert, Clock, ArrowRightLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { showSuccess, showError } from '@/utils/toast';
@@ -63,7 +63,7 @@ const FoodLookup = () => {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for food (e.g., 'Apple', 'Chicken Breast', 'Salmon')..."
+          placeholder="Search for food (e.g., '1 large apple' or 'chicken breast')..."
           className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 pl-14 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
         />
         <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
@@ -87,14 +87,7 @@ const FoodLookup = () => {
               <GlassCard>
                 <div className="flex justify-between items-start mb-8">
                   <div>
-                    <div className="flex items-center gap-3 mb-1">
-                      <h3 className="text-2xl font-bold text-white capitalize">{query}</h3>
-                      {result.source === 'intelligence_engine' && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-[10px] font-bold rounded-full border border-cyan-500/30">
-                          <Database size={10} /> Intelligence Engine
-                        </span>
-                      )}
-                    </div>
+                    <h3 className="text-2xl font-bold text-white capitalize">{query}</h3>
                     <p className="text-slate-400">{result.calories} kcal per serving</p>
                   </div>
                   <div className="text-right">
@@ -153,7 +146,7 @@ const FoodLookup = () => {
                   Health & Safety Alerts
                 </h4>
                 <div className="space-y-3">
-                  {result.alerts.length > 0 ? result.alerts.map((alert: any, i: number) => (
+                  {result.alerts.map((alert: any, i: number) => (
                     <div key={i} className={cn(
                       "p-4 rounded-xl flex items-center gap-3 border",
                       alert.type === 'warning' ? "bg-red-500/10 border-red-500/20 text-red-200" : "bg-green-500/10 border-green-500/20 text-green-200"
@@ -161,12 +154,7 @@ const FoodLookup = () => {
                       {alert.type === 'warning' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
                       <span className="text-sm">{alert.message}</span>
                     </div>
-                  )) : (
-                    <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-3 text-green-200">
-                      <CheckCircle2 size={16} />
-                      <span className="text-sm">No specific health alerts for your profile.</span>
-                    </div>
-                  )}
+                  ))}
                   {result.upf.isUPF && (
                     <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl flex items-center gap-3 text-orange-200">
                       <Zap size={16} />
