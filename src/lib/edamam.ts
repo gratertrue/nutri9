@@ -10,6 +10,27 @@ const RECIPE_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 const PROXY_URL = "https://api.codetabs.com/v1/proxy?quest=";
 
 /**
+ * Safely parses JSON from a response, handling cases where HTML might be returned instead
+ */
+const safeFetchJson = async (url: string) => {
+  try {
+    const response = await fetch(`${PROXY_URL}${encodeURIComponent(url)}`);
+    const text = await response.text();
+    
+    // Check if the response looks like HTML (starts with <)
+    if (text.trim().startsWith('<')) {
+      console.warn("API Proxy returned HTML instead of JSON. This usually means the proxy is rate-limited or down.");
+      return null;
+    }
+    
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Fetch or Parse error:", error);
+    return null;
+  }
+};
+
+/**
  * Maps UI labels to Edamam API specific health labels
  */
 const mapHealthLabel = (label: string): string => {
@@ -33,11 +54,11 @@ export const analyzeNutrition = async (ingr: string) => {
     url.searchParams.append("app_key", FOOD_APP_KEY);
     url.searchParams.append("ingr", ingr);
 
-    const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
-    if (!response.ok) throw new Error("API request failed");
-
-    const data = await response.json();
-    if (!data || !data.hints || data.hints.length === 0) return getFallbackData(ingr);
+    const data = await safeFetchJson(url.toString());
+    
+    if (!data || !data.hints || data.hints.length === 0) {
+      return getFallbackData(ingr);
+    }
 
     // Find the best match hint that has nutrients
     const hint = data.hints.find((h: any) => h.food && h.food.nutrients) || data.hints[0];
@@ -72,7 +93,9 @@ const getFallbackData = (ingr: string) => {
     chicken: { calories: 165, totalNutrients: { PROCNT: { quantity: 31 }, CHOCDF: { quantity: 0 }, FAT: { quantity: 3.6 } } },
     salmon: { calories: 208, totalNutrients: { PROCNT: { quantity: 20 }, CHOCDF: { quantity: 0 }, FAT: { quantity: 13 } } },
     egg: { calories: 70, totalNutrients: { PROCNT: { quantity: 6 }, CHOCDF: { quantity: 0.6 }, FAT: { quantity: 5 } } },
-    rice: { calories: 130, totalNutrients: { PROCNT: { quantity: 2.7 }, CHOCDF: { quantity: 28 }, FAT: { quantity: 0.3 } } }
+    rice: { calories: 130, totalNutrients: { PROCNT: { quantity: 2.7 }, CHOCDF: { quantity: 28 }, FAT: { quantity: 0.3 } } },
+    avocado: { calories: 160, totalNutrients: { PROCNT: { quantity: 2 }, CHOCDF: { quantity: 8.5 }, FAT: { quantity: 14.7 } } },
+    broccoli: { calories: 34, totalNutrients: { PROCNT: { quantity: 2.8 }, CHOCDF: { quantity: 6.6 }, FAT: { quantity: 0.4 } } }
   };
 
   const match = Object.keys(mocks).find(key => lower.includes(key));
@@ -98,7 +121,6 @@ const getFallbackData = (ingr: string) => {
 
 export const searchRecipes = async (params: any) => {
   try {
-    // Handle both object params and simple string query
     const query = typeof params === 'string' ? params : params.query;
     const health = params.health || [];
     const mealType = params.mealType;
@@ -126,10 +148,7 @@ export const searchRecipes = async (params: any) => {
     if (calories) url.searchParams.append("calories", calories);
     if (diet) url.searchParams.append("diet", diet);
 
-    const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
-    if (!response.ok) return null;
-    
-    const data = await response.json();
+    const data = await safeFetchJson(url.toString());
     return data;
   } catch (error) {
     console.error("Recipe search failed", error);
