@@ -6,7 +6,7 @@ const FOOD_APP_KEY = "4ef9911c1a046060203091660977ee0d";
 const RECIPE_APP_ID = "23cc0b56"; 
 const RECIPE_APP_KEY = "9ab0df600176dc9baa30d2fae4b945c8";
 
-// Using CodeTabs proxy
+// Using CodeTabs proxy to bypass CORS
 const PROXY_URL = "https://api.codetabs.com/v1/proxy?quest=";
 
 /**
@@ -34,12 +34,14 @@ export const analyzeNutrition = async (ingr: string) => {
     url.searchParams.append("ingr", ingr);
 
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
-    if (!response.ok) return getFallbackData(ingr);
+    if (!response.ok) throw new Error("API request failed");
 
     const data = await response.json();
     if (!data || !data.hints || data.hints.length === 0) return getFallbackData(ingr);
 
-    const food = data.hints[0].food;
+    // Find the best match hint that has nutrients
+    const hint = data.hints.find((h: any) => h.food && h.food.nutrients) || data.hints[0];
+    const food = hint.food;
     const nutrients = food.nutrients;
 
     return {
@@ -57,6 +59,7 @@ export const analyzeNutrition = async (ingr: string) => {
       healthLabels: food.foodContentsLabel ? [food.foodContentsLabel] : ["NATURAL_FOOD"]
     };
   } catch (error) {
+    console.error("Nutrition analysis failed", error);
     return getFallbackData(ingr);
   }
 };
@@ -67,7 +70,9 @@ const getFallbackData = (ingr: string) => {
     apple: { calories: 95, totalNutrients: { PROCNT: { quantity: 0.5 }, CHOCDF: { quantity: 25 }, FAT: { quantity: 0.3 } } },
     banana: { calories: 105, totalNutrients: { PROCNT: { quantity: 1.3 }, CHOCDF: { quantity: 27 }, FAT: { quantity: 0.4 } } },
     chicken: { calories: 165, totalNutrients: { PROCNT: { quantity: 31 }, CHOCDF: { quantity: 0 }, FAT: { quantity: 3.6 } } },
-    salmon: { calories: 208, totalNutrients: { PROCNT: { quantity: 20 }, CHOCDF: { quantity: 0 }, FAT: { quantity: 13 } } }
+    salmon: { calories: 208, totalNutrients: { PROCNT: { quantity: 20 }, CHOCDF: { quantity: 0 }, FAT: { quantity: 13 } } },
+    egg: { calories: 70, totalNutrients: { PROCNT: { quantity: 6 }, CHOCDF: { quantity: 0.6 }, FAT: { quantity: 5 } } },
+    rice: { calories: 130, totalNutrients: { PROCNT: { quantity: 2.7 }, CHOCDF: { quantity: 28 }, FAT: { quantity: 0.3 } } }
   };
 
   const match = Object.keys(mocks).find(key => lower.includes(key));
@@ -79,7 +84,11 @@ const getFallbackData = (ingr: string) => {
       totalNutrients: {
         PROCNT: { quantity: data.totalNutrients.PROCNT.quantity, unit: 'g' },
         CHOCDF: { quantity: data.totalNutrients.CHOCDF.quantity, unit: 'g' },
-        FAT: { quantity: data.totalNutrients.FAT.quantity, unit: 'g' }
+        FAT: { quantity: data.totalNutrients.FAT.quantity, unit: 'g' },
+        FIBTG: { quantity: 0, unit: 'g' },
+        SUGAR: { quantity: 0, unit: 'g' },
+        FASAT: { quantity: 0, unit: 'g' },
+        NA: { quantity: 0, unit: 'mg' }
       },
       healthLabels: ["NATURAL_FOOD"]
     };
@@ -87,43 +96,37 @@ const getFallbackData = (ingr: string) => {
   return null;
 };
 
-export const searchRecipes = async (params: {
-  query: string;
-  health?: string[];
-  mealType?: string;
-  calories?: string;
-  diet?: string;
-}) => {
+export const searchRecipes = async (params: any) => {
   try {
+    // Handle both object params and simple string query
+    const query = typeof params === 'string' ? params : params.query;
+    const health = params.health || [];
+    const mealType = params.mealType;
+    const calories = params.calories;
+    const diet = params.diet;
+
     const url = new URL("https://api.edamam.com/api/recipes/v2");
     url.searchParams.append("type", "public");
-    url.searchParams.append("q", params.query);
+    url.searchParams.append("q", query);
     url.searchParams.append("app_id", RECIPE_APP_ID);
     url.searchParams.append("app_key", RECIPE_APP_KEY);
     
-    // Edamam v2 expects specific casing for mealType (e.g., Lunch, Dinner)
-    if (params.mealType) {
-      const formattedMealType = params.mealType.charAt(0).toUpperCase() + params.mealType.slice(1).toLowerCase();
+    if (mealType) {
+      const formattedMealType = mealType.charAt(0).toUpperCase() + mealType.slice(1).toLowerCase();
       url.searchParams.append("mealType", formattedMealType);
     }
 
-    if (params.health && params.health.length > 0) {
-      params.health.forEach(h => {
+    if (health && health.length > 0) {
+      health.forEach((h: string) => {
         const mapped = mapHealthLabel(h);
         url.searchParams.append("health", mapped);
       });
     }
 
-    if (params.calories) {
-      url.searchParams.append("calories", params.calories);
-    }
-
-    if (params.diet) {
-      url.searchParams.append("diet", params.diet);
-    }
+    if (calories) url.searchParams.append("calories", calories);
+    if (diet) url.searchParams.append("diet", diet);
 
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url.toString())}`);
-    
     if (!response.ok) return null;
     
     const data = await response.json();
@@ -160,7 +163,7 @@ export const getRecommendations = async (params: {
     mealType: params.mealType
   });
 
-  // If no results, try a broader search by removing the calorie constraint
+  // If no results, try a broader search
   if (!results || !results.hits || results.hits.length === 0) {
     results = await searchRecipes({
       query: randomQuery,
@@ -170,7 +173,7 @@ export const getRecommendations = async (params: {
     });
   }
 
-  // If still no results, try the most basic search with just query and mealType
+  // Final fallback
   if (!results || !results.hits || results.hits.length === 0) {
     results = await searchRecipes({
       query: randomQuery,

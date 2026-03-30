@@ -59,18 +59,22 @@ const FoodLookup = () => {
     setQuery(searchQuery);
     setLoading(true);
     setResult(null);
+    setRecipes([]);
     
     try {
       const data = await analyzeNutrition(searchQuery);
       
-      if (data && data.totalWeight > 0) {
+      if (data) {
         const score = calculateHealthyScore(data);
         const alerts = analyzeHealthConditions(data, profile.healthConditions || []);
         setResult({ ...data, score, alerts });
         setWeight(data.totalWeight || 100);
         
-        const recipeData = await searchRecipes(searchQuery);
-        if (recipeData) setRecipes(recipeData.hits.slice(0, 4));
+        // Correctly passing an object to searchRecipes
+        const recipeData = await searchRecipes({ query: searchQuery });
+        if (recipeData && recipeData.hits) {
+          setRecipes(recipeData.hits.slice(0, 4));
+        }
         
         updatePoints(10);
       } else {
@@ -122,7 +126,7 @@ const FoodLookup = () => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search for food..."
+            placeholder="Search for food (e.g. 'Avocado', 'Chicken Breast')..."
             className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 md:py-4 px-4 md:px-6 pl-12 md:pl-14 text-white text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
           />
           <Search className="absolute left-4 md:left-5 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
