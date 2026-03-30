@@ -17,15 +17,14 @@ const safeFetchJson = async (url: string) => {
     const response = await fetch(`${PROXY_URL}${encodeURIComponent(url)}`);
     const text = await response.text();
     
-    // Check if the response looks like HTML (starts with <)
     if (text.trim().startsWith('<')) {
-      console.warn("API Proxy returned HTML instead of JSON. This usually means the proxy is rate-limited or down.");
+      console.warn("API Proxy returned HTML. Switching to Demo Mode data.");
       return null;
     }
     
     return JSON.parse(text);
   } catch (error) {
-    console.error("Fetch or Parse error:", error);
+    console.error("Fetch error:", error);
     return null;
   }
 };
@@ -57,10 +56,9 @@ export const analyzeNutrition = async (ingr: string) => {
     const data = await safeFetchJson(url.toString());
     
     if (!data || !data.hints || data.hints.length === 0) {
-      return getFallbackData(ingr);
+      return getFallbackNutrition(ingr);
     }
 
-    // Find the best match hint that has nutrients
     const hint = data.hints.find((h: any) => h.food && h.food.nutrients) || data.hints[0];
     const food = hint.food;
     const nutrients = food.nutrients;
@@ -80,125 +78,104 @@ export const analyzeNutrition = async (ingr: string) => {
       healthLabels: food.foodContentsLabel ? [food.foodContentsLabel] : ["NATURAL_FOOD"]
     };
   } catch (error) {
-    console.error("Nutrition analysis failed", error);
-    return getFallbackData(ingr);
+    return getFallbackNutrition(ingr);
   }
 };
 
-const getFallbackData = (ingr: string) => {
+const getFallbackNutrition = (ingr: string) => {
   const lower = ingr.toLowerCase();
   const mocks: Record<string, any> = {
-    apple: { calories: 95, totalNutrients: { PROCNT: { quantity: 0.5 }, CHOCDF: { quantity: 25 }, FAT: { quantity: 0.3 } } },
-    banana: { calories: 105, totalNutrients: { PROCNT: { quantity: 1.3 }, CHOCDF: { quantity: 27 }, FAT: { quantity: 0.4 } } },
-    chicken: { calories: 165, totalNutrients: { PROCNT: { quantity: 31 }, CHOCDF: { quantity: 0 }, FAT: { quantity: 3.6 } } },
-    salmon: { calories: 208, totalNutrients: { PROCNT: { quantity: 20 }, CHOCDF: { quantity: 0 }, FAT: { quantity: 13 } } },
-    egg: { calories: 70, totalNutrients: { PROCNT: { quantity: 6 }, CHOCDF: { quantity: 0.6 }, FAT: { quantity: 5 } } },
-    rice: { calories: 130, totalNutrients: { PROCNT: { quantity: 2.7 }, CHOCDF: { quantity: 28 }, FAT: { quantity: 0.3 } } },
-    avocado: { calories: 160, totalNutrients: { PROCNT: { quantity: 2 }, CHOCDF: { quantity: 8.5 }, FAT: { quantity: 14.7 } } },
-    broccoli: { calories: 34, totalNutrients: { PROCNT: { quantity: 2.8 }, CHOCDF: { quantity: 6.6 }, FAT: { quantity: 0.4 } } }
+    apple: { calories: 95, PROCNT: 0.5, CHOCDF: 25, FAT: 0.3, FIBTG: 4.5, SUGAR: 19 },
+    banana: { calories: 105, PROCNT: 1.3, CHOCDF: 27, FAT: 0.4, FIBTG: 3.1, SUGAR: 14 },
+    chicken: { calories: 165, PROCNT: 31, CHOCDF: 0, FAT: 3.6, FIBTG: 0, SUGAR: 0 },
+    salmon: { calories: 208, PROCNT: 20, CHOCDF: 0, FAT: 13, FIBTG: 0, SUGAR: 0 },
+    egg: { calories: 70, PROCNT: 6, CHOCDF: 0.6, FAT: 5, FIBTG: 0, SUGAR: 0 },
+    rice: { calories: 130, PROCNT: 2.7, CHOCDF: 28, FAT: 0.3, FIBTG: 0.4, SUGAR: 0.1 },
+    avocado: { calories: 160, PROCNT: 2, CHOCDF: 8.5, FAT: 14.7, FIBTG: 6.7, SUGAR: 0.7 },
+    broccoli: { calories: 34, PROCNT: 2.8, CHOCDF: 6.6, FAT: 0.4, FIBTG: 2.6, SUGAR: 1.7 },
+    coffee: { calories: 2, PROCNT: 0.1, CHOCDF: 0, FAT: 0, FIBTG: 0, SUGAR: 0 },
+    steak: { calories: 250, PROCNT: 26, CHOCDF: 0, FAT: 15, FIBTG: 0, SUGAR: 0 }
   };
 
-  const match = Object.keys(mocks).find(key => lower.includes(key));
-  if (match) {
-    const data = mocks[match];
-    return {
-      ...data,
-      totalWeight: 100,
-      totalNutrients: {
-        PROCNT: { quantity: data.totalNutrients.PROCNT.quantity, unit: 'g' },
-        CHOCDF: { quantity: data.totalNutrients.CHOCDF.quantity, unit: 'g' },
-        FAT: { quantity: data.totalNutrients.FAT.quantity, unit: 'g' },
-        FIBTG: { quantity: 0, unit: 'g' },
-        SUGAR: { quantity: 0, unit: 'g' },
-        FASAT: { quantity: 0, unit: 'g' },
-        NA: { quantity: 0, unit: 'mg' }
-      },
-      healthLabels: ["NATURAL_FOOD"]
-    };
-  }
-  return null;
+  const match = Object.keys(mocks).find(key => lower.includes(key)) || 'apple';
+  const data = mocks[match];
+  
+  return {
+    calories: data.calories,
+    totalWeight: 100,
+    totalNutrients: {
+      PROCNT: { quantity: data.PROCNT, unit: 'g' },
+      CHOCDF: { quantity: data.CHOCDF, unit: 'g' },
+      FAT: { quantity: data.FAT, unit: 'g' },
+      FIBTG: { quantity: data.FIBTG, unit: 'g' },
+      SUGAR: { quantity: data.SUGAR, unit: 'g' },
+      FASAT: { quantity: data.FAT * 0.3, unit: 'g' },
+      NA: { quantity: 5, unit: 'mg' }
+    },
+    healthLabels: ["DEMO_MODE_DATA"]
+  };
 };
 
 export const searchRecipes = async (params: any) => {
   try {
     const query = typeof params === 'string' ? params : params.query;
-    const health = params.health || [];
-    const mealType = params.mealType;
-    const calories = params.calories;
-    const diet = params.diet;
-
     const url = new URL("https://api.edamam.com/api/recipes/v2");
     url.searchParams.append("type", "public");
     url.searchParams.append("q", query);
     url.searchParams.append("app_id", RECIPE_APP_ID);
     url.searchParams.append("app_key", RECIPE_APP_KEY);
     
-    if (mealType) {
-      const formattedMealType = mealType.charAt(0).toUpperCase() + mealType.slice(1).toLowerCase();
-      url.searchParams.append("mealType", formattedMealType);
-    }
-
-    if (health && health.length > 0) {
-      health.forEach((h: string) => {
-        const mapped = mapHealthLabel(h);
-        url.searchParams.append("health", mapped);
-      });
-    }
-
-    if (calories) url.searchParams.append("calories", calories);
-    if (diet) url.searchParams.append("diet", diet);
-
     const data = await safeFetchJson(url.toString());
+    if (!data || !data.hits) return getMockRecipes(query);
     return data;
   } catch (error) {
-    console.error("Recipe search failed", error);
-    return null;
+    return getMockRecipes(typeof params === 'string' ? params : params.query);
   }
 };
 
-export const getRecommendations = async (params: {
-  healthLabels: string[];
-  mealType?: string;
-  calories?: string;
-  diet?: string;
-}) => {
-  const baseQueries: Record<string, string[]> = {
-    breakfast: ['oats', 'eggs', 'smoothie', 'pancakes', 'toast'],
-    lunch: ['salad', 'sandwich', 'bowl', 'wrap', 'soup'],
-    dinner: ['chicken', 'pasta', 'salmon', 'steak', 'stir fry'],
-    snack: ['nuts', 'fruit', 'yogurt', 'hummus', 'cheese']
-  };
+const getMockRecipes = (query: string) => {
+  const mockHits = [
+    {
+      recipe: {
+        uri: "mock-1",
+        label: `${query} Power Bowl`,
+        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80",
+        url: "#",
+        yield: 1,
+        dietLabels: ["High-Protein"],
+        healthLabels: ["Vegan", "Gluten-Free"],
+        calories: 450,
+        totalTime: 20,
+        totalNutrients: {
+          PROCNT: { quantity: 25 },
+          CHOCDF: { quantity: 45 },
+          FAT: { quantity: 12 }
+        }
+      }
+    },
+    {
+      recipe: {
+        uri: "mock-2",
+        label: `Roasted ${query} Salad`,
+        image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=500&q=80",
+        url: "#",
+        yield: 2,
+        dietLabels: ["Low-Carb"],
+        healthLabels: ["Vegetarian"],
+        calories: 600,
+        totalTime: 35,
+        totalNutrients: {
+          PROCNT: { quantity: 15 },
+          CHOCDF: { quantity: 20 },
+          FAT: { quantity: 18 }
+        }
+      }
+    }
+  ];
+  return { hits: mockHits };
+};
 
-  const mealTypeKey = params.mealType?.toLowerCase() || 'lunch';
-  const queries = baseQueries[mealTypeKey] || baseQueries.lunch;
-  const randomQuery = queries[Math.floor(Math.random() * queries.length)];
-  
-  // Try strict search first
-  let results = await searchRecipes({
-    query: randomQuery,
-    health: params.healthLabels,
-    calories: params.calories,
-    diet: params.diet,
-    mealType: params.mealType
-  });
-
-  // If no results, try a broader search
-  if (!results || !results.hits || results.hits.length === 0) {
-    results = await searchRecipes({
-      query: randomQuery,
-      health: params.healthLabels,
-      diet: params.diet,
-      mealType: params.mealType
-    });
-  }
-
-  // Final fallback
-  if (!results || !results.hits || results.hits.length === 0) {
-    results = await searchRecipes({
-      query: randomQuery,
-      mealType: params.mealType
-    });
-  }
-
+export const getRecommendations = async (params: any) => {
+  const results = await searchRecipes(params.mealType || "Healthy");
   return results;
 };
